@@ -18,6 +18,11 @@ type requestCountNode struct {
 	right *requestCountNode
 }
 
+func (node requestCountNode) WithinDurationFrom(duration time.Duration, precision time.Duration, reference requestCount) (bool, time.Duration) {
+	difference := reference.timestamp.Sub(node.data.timestamp).Truncate(precision)
+	return difference.Nanoseconds() <= duration.Nanoseconds(), difference
+}
+
 type requestCountDoublyLinkedList struct {
 	head *requestCountNode
 	tail *requestCountNode
@@ -51,4 +56,15 @@ func (list requestCountDoublyLinkedList) Dump() string {
 	}
 
 	return result.String()
+}
+
+func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) {
+	currentNode := list.tail.left
+	for {
+		if currentNode == nil {
+			break
+		}
+
+		//TODO LEFT HERE
+	}
 }
