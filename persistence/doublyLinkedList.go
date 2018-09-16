@@ -78,6 +78,42 @@ func (list requestCountDoublyLinkedList) DumpBackwards() string {
 	return result.String()
 }
 
+/*
+Discard all nodes between head and lastNodeToDiscard from the list. Assumes that lastNodeToDiscard is part of the list
+Specifying tail as lastNodeToDiscard discards all nodes from the list. The resulting list will have head = tail = nil.
+Otherwise, lastNodeToDiscard.right will be the new head of the list
+*/
+func (list requestCountDoublyLinkedList) FrontDiscardUntil(lastNodeToDiscard *requestCountNode) requestCountDoublyLinkedList {
+	currentNode := list.head
+	if lastNodeToDiscard == list.tail {
+		list.head = nil
+		list.tail = nil
+	} else {
+		list.head = lastNodeToDiscard.right
+	}
+	for {
+		if currentNode == nil {
+			break
+		}
+
+		atLastNode := false
+		if currentNode == lastNodeToDiscard {
+			atLastNode = true
+		}
+
+		temp := currentNode.right
+		currentNode.left = nil
+		currentNode.right = nil
+		currentNode = temp
+
+		if atLastNode {
+			break
+		}
+	}
+
+	return list
+}
+
 func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) requestCountDoublyLinkedList {
 	currentNode := list.tail.left
 	for {
@@ -89,23 +125,9 @@ func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) re
 			currentNode.data.accumulatedRequestCount = currentNode.data.requestsCount + currentNode.right.data.accumulatedRequestCount
 			currentNode = currentNode.left
 		} else {
-			nodeToBeDiscarded := list.head
-			list.head = currentNode.right
-			currentNode.right = nil
-			currentNode.left = nil
-			currentNode = nil
+			list = list.FrontDiscardUntil(currentNode)
+			break
 
-			//discard
-			for {
-				if nodeToBeDiscarded == nil {
-					break
-				}
-
-				temp := nodeToBeDiscarded.right
-				nodeToBeDiscarded.left = nil
-				nodeToBeDiscarded.right = nil
-				nodeToBeDiscarded = temp
-			}
 		}
 	}
 

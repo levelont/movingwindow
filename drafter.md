@@ -114,8 +114,8 @@ detectInterrupt()
 		- requires HEAD and NEWHEAD as parameters
 		- nodes, starting from HEAD will be removed one by one until NEWHEAD is reached
 		- NEWHEAD will be the new HEAD of the doubly linked list after the operations
-- [ ] extract discard node subset logic from update totals
-    - [ ] replace discard logic @ UpdateTotals with new function
+- [X] extract discard node subset logic from update totals
+    - [X] replace discard logic @ UpdateTotals with new function
 - [ ] get total accumulated requests
 - [ ] write state to file
 - [ ] read state from file
