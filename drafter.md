@@ -116,14 +116,15 @@ detectInterrupt()
 		- NEWHEAD will be the new HEAD of the doubly linked list after the operations
 - [X] extract discard node subset logic from update totals
     - [X] replace discard logic @ UpdateTotals with new function
-- [ ] get total accumulated requests
-- [ ] write state to file
-- [ ] read state from file
-- [ ] identify serialization points
+- [X] get total accumulated requests
 - [ ] http server layer
     - [ ] retrieve timestamp from request
+- [ ] response writer
+- [ ] high availability 
+    - [ ] identify serialization points
+    - [ ] write state to file
+    - [ ] read state from file
 - [ ] concurrency concerns
     - [ ] locked write access to cache?
     - [ ] locked write access to doublyLinkedList?
-- [ ] response writer
 */

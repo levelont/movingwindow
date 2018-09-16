@@ -2,8 +2,6 @@ package persistence
 
 import (
 	"fmt"
-	"strconv"
-	"strings"
 	"time"
 )
 
@@ -23,7 +21,10 @@ type requestCountNode struct {
 	right *requestCountNode
 }
 
-func (node requestCountNode) WithinDurationFrom(duration time.Duration, precision time.Duration, reference requestCount) (bool, time.Duration) {
+/*
+Checks if the timestamp of the receiver is within the provided duration before the reference.
+*/
+func (node requestCountNode) WithinDurationBefore(duration time.Duration, precision time.Duration, reference requestCount) (bool, time.Duration) {
 	difference := reference.timestamp.Sub(node.data.timestamp).Truncate(precision)
 	return difference.Nanoseconds() <= duration.Nanoseconds(), difference
 }
@@ -33,6 +34,9 @@ type requestCountDoublyLinkedList struct {
 	tail *requestCountNode
 }
 
+/*
+Creates an new node with the provided data and sets it both as the right node of the current tail and as the new tail of the list
+*/
 func (list requestCountDoublyLinkedList) AppendToTail(data requestCount) requestCountDoublyLinkedList {
 	//new node with provided data
 	newNode := requestCountNode{data: data}
@@ -48,34 +52,6 @@ func (list requestCountDoublyLinkedList) AppendToTail(data requestCount) request
 	}
 
 	return list
-}
-
-func (list requestCountDoublyLinkedList) Dump() string {
-	var result strings.Builder
-	currentNode := list.head
-	for {
-		if currentNode == nil {
-			break
-		}
-		result.WriteString(strconv.Itoa(currentNode.data.requestsCount))
-		currentNode = currentNode.right
-	}
-
-	return result.String()
-}
-
-func (list requestCountDoublyLinkedList) DumpBackwards() string {
-	var result strings.Builder
-	currentNode := list.tail
-	for {
-		if currentNode == nil {
-			break
-		}
-		result.WriteString(strconv.Itoa(currentNode.data.requestsCount))
-		currentNode = currentNode.left
-	}
-
-	return result.String()
 }
 
 /*
@@ -114,6 +90,15 @@ func (list requestCountDoublyLinkedList) FrontDiscardUntil(lastNodeToDiscard *re
 	return list
 }
 
+/*
+Backward-traverses the list starting from the node left to the tail. Checks that each node is within 60 seconds before
+the reference.
+Nodes with timestamps in the time frame will get their accumulatedRequestCount value updated to the sum of their
+requestCount and the accumulated of the node right to them.
+As such, the total of accumulated requests received between the reference and the previous 60 seconds will be the
+accumulatedRequestCount value of the head of the list.
+Nodes outside of the time frame will be discarded from the list.
+*/
 func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) requestCountDoublyLinkedList {
 	currentNode := list.tail.left
 	for {
@@ -121,7 +106,7 @@ func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) re
 			break
 		}
 
-		if within60SecondsFromReference, _ := currentNode.WithinDurationFrom(time.Duration(60)*time.Second, time.Second, reference); within60SecondsFromReference {
+		if within60SecondsFromReference, _ := currentNode.WithinDurationBefore(time.Duration(60)*time.Second, time.Second, reference); within60SecondsFromReference {
 			currentNode.data.accumulatedRequestCount = currentNode.data.requestsCount + currentNode.right.data.accumulatedRequestCount
 			currentNode = currentNode.left
 		} else {
@@ -132,4 +117,11 @@ func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) re
 	}
 
 	return list
+}
+
+/*
+Assumes that UpdateTotals was called right before.
+*/
+func (list requestCountDoublyLinkedList) TotalAccumulatedRequestCount() int {
+	return list.head.data.accumulatedRequestCount
 }

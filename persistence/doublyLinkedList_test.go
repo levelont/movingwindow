@@ -2,9 +2,39 @@ package persistence
 
 import (
 	"errors"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 )
+
+func dumpList(list requestCountDoublyLinkedList) string {
+	var result strings.Builder
+	currentNode := list.head
+	for {
+		if currentNode == nil {
+			break
+		}
+		result.WriteString(strconv.Itoa(currentNode.data.requestsCount))
+		currentNode = currentNode.right
+	}
+
+	return result.String()
+}
+
+func dumpListBackwards(list requestCountDoublyLinkedList) string {
+	var result strings.Builder
+	currentNode := list.tail
+	for {
+		if currentNode == nil {
+			break
+		}
+		result.WriteString(strconv.Itoa(currentNode.data.requestsCount))
+		currentNode = currentNode.left
+	}
+
+	return result.String()
+}
 
 func buildDoublyLinkedList(values []requestCount) requestCountDoublyLinkedList {
 	var list requestCountDoublyLinkedList
@@ -17,8 +47,8 @@ func buildDoublyLinkedList(values []requestCount) requestCountDoublyLinkedList {
 
 type appendToTailTest struct {
 	listData              []requestCount //a linked list will be constructed with these values in the same order of the slice
-	expectedDump          string         //expected Dump() output
-	expectedDumpBackwards string         //expected DumpBackwards() output
+	expectedDump          string         //expected dumpList() output
+	expectedDumpBackwards string         //expected dumpListBackwards() output
 }
 
 var appendToTailTestList = []appendToTailTest{
@@ -52,18 +82,20 @@ var appendToTailTestList = []appendToTailTest{
 func TestRequestCountDoublyLinkedList_AppendToTail(t *testing.T) {
 	for i, test := range appendToTailTestList {
 		list := buildDoublyLinkedList(test.listData)
-		if list.Dump() != test.expectedDump {
-			t.Errorf("Expected '%v', got '%v' for test '%v' with values '%v'.\n", test.expectedDump, list.Dump(), i, test)
+		listDump := dumpList(list)
+		if listDump != test.expectedDump {
+			t.Errorf("Expected '%v', got '%v' for test '%v' with values '%v'.\n", test.expectedDump, listDump, i, test)
 		}
-		if list.DumpBackwards() != test.expectedDumpBackwards {
-			t.Errorf("Expected '%v', got '%v' for test '%v' with values '%v'.\n", test.expectedDumpBackwards, list.DumpBackwards(), i, test)
+		backwardsListDump := dumpListBackwards(list)
+		if backwardsListDump != test.expectedDumpBackwards {
+			t.Errorf("Expected '%v', got '%v' for test '%v' with values '%v'.\n", test.expectedDumpBackwards, backwardsListDump, i, test)
 		}
 	}
 }
 
 const DATE_FORMAT = time.RFC3339Nano //"2006-01-02T15:04:05.999999999Z07:00"
 
-type withinDurationFromTest struct {
+type withinDurationBeforeTest struct {
 	reference          string
 	timestamp          string
 	maxAllowedDuration time.Duration // max amount of time allowed between reference and timestamp
@@ -71,7 +103,7 @@ type withinDurationFromTest struct {
 	expected           bool
 }
 
-var withinDurationFromTestList = []withinDurationFromTest{
+var withinDurationBeforeTestList = []withinDurationBeforeTest{
 	{"2006-01-02T15:04:05.000000000Z", "2006-01-02T15:04:05.000000000Z", time.Duration(0) * time.Second, time.Second, true},
 	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.000000000Z", time.Duration(0) * time.Second, time.Second, false},
 	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.000000000Z", time.Duration(2) * time.Second, time.Second, true},
@@ -80,8 +112,8 @@ var withinDurationFromTestList = []withinDurationFromTest{
 	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.999999999Z", time.Duration(1) * time.Second, time.Second, true},
 }
 
-func TestRequestCountNode_WithinDurationFrom(t *testing.T) {
-	for i, test := range withinDurationFromTestList {
+func TestRequestCountNode_withinDurationBefore(t *testing.T) {
+	for i, test := range withinDurationBeforeTestList {
 		parsedReference, err := time.Parse(DATE_FORMAT, test.reference)
 		if err != nil {
 			t.Fatal(err)
@@ -95,7 +127,7 @@ func TestRequestCountNode_WithinDurationFrom(t *testing.T) {
 		data := requestCount{timestamp: parsedTimestamp}
 		node := requestCountNode{data: data}
 
-		result, difference := node.WithinDurationFrom(test.maxAllowedDuration, test.unit, reference)
+		result, difference := node.WithinDurationBefore(test.maxAllowedDuration, test.unit, reference)
 		if result != test.expected {
 			t.Fatalf("Expected '%v' but got '%v' for test '%v' with values '%v'. Difference(nanoseconds): '%v'\n", test.expected, result, i, test, difference.Nanoseconds())
 		}
@@ -152,7 +184,7 @@ func TestRequestCountDoublyLinkedList_UpdateTotals(t *testing.T) {
 		list = list.UpdateTotals(test.reference)
 
 		if list.head.data != test.expectedHead {
-			t.Fatalf("Expected '%+v' but got '%+v' for test '%v' with values '%v'. Chain: '%v'\n", test.expectedHead.Dump(), list.head.data.Dump(), i, test, list.Dump())
+			t.Fatalf("Expected '%+v' but got '%+v' for test '%v' with values '%v'. List: '%v'\n", test.expectedHead.Dump(), list.head.data.Dump(), i, test, dumpList(list))
 		}
 	}
 }
@@ -389,6 +421,42 @@ func TestRequestCountDoublyLinkedList_FrontDiscardUntil(t *testing.T) {
 		resultList := initialList.FrontDiscardUntil(lastNodeToDiscard)
 		if !compareLists(expectedListAfterDiscard, resultList) {
 			t.Fatalf("Expected '%v' but got '%v' from test '%v' with data '%v'\n", expectedListAfterDiscard, resultList, i, test)
+		}
+	}
+}
+
+type totalAccumulatedRequestCountTest struct {
+	listData []requestCount //a linked list will be constructed with these values in the same order of the slice
+	expected int
+}
+
+var totalAccumulatedRequestCountTestList = []totalAccumulatedRequestCountTest{
+	{ // Simple test
+		listData: []requestCount{
+			{requestsCount: 1, accumulatedRequestCount: 1111},
+			{requestsCount: 2},
+			{requestsCount: 3},
+			{requestsCount: 4},
+		},
+		expected: 1111,
+	},
+	{ // Never mind other values
+		listData: []requestCount{
+			{requestsCount: 1, accumulatedRequestCount: 1111},
+			{requestsCount: 2, accumulatedRequestCount: 2222},
+			{requestsCount: 3, accumulatedRequestCount: 3333},
+			{requestsCount: 4, accumulatedRequestCount: 4444},
+		},
+		expected: 1111,
+	},
+}
+
+func TestRequestCountDoublyLinkedList_TotalAccumulatedRequestCount(t *testing.T) {
+	for i, test := range totalAccumulatedRequestCountTestList {
+		list := buildDoublyLinkedList(test.listData)
+		result := list.TotalAccumulatedRequestCount()
+		if result != test.expected {
+			t.Fatalf("Expected '%v' but got '%v' from test '%v' with data '%v'\n", result, test.expected, i, test)
 		}
 	}
 }
