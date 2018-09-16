@@ -5,8 +5,8 @@ The server should continue to the return the correct numbers after restarting it
 
 /* Design:
 - Initialize
-	TODO read state from file
-	TODO how to initialiye cache and persistence struct for the very first round?
+	[TODO] read state from file
+	[TODO] how to initialiye cache and persistence struct for the very first round?
 - Incoming requests have a timestamp.
 	- Truncate to seconds - that's the minimum unit we will work with.
 - Compare incoming timestamp with the held cache
@@ -17,9 +17,9 @@ The server should continue to the return the correct numbers after restarting it
 		getDataForLast59() + Cache.totalRequests
 		getDataForLast59() = 0 if HEAD == nil
 - If the timestamp is equal
- 	[X] - First, read the value and dispatch the response right away.
- 		[X] - it is important that the read is done first because a read has no contention - no waiting time.
- 		[X] - but it is also an issue: reads are much faster than writes, so some responses might be dispatched
+ 	[DEPRECATED] - First, read the value and dispatch the response right away.
+ 		[DEPRECATED] - it is important that the read is done first because a read has no contention - no waiting time.
+ 		[DEPRECATED] - but it is also an issue: reads are much faster than writes, so some responses might be dispatched
  		      with wrong values
  	- increase cache counter by one
 		- This should be some sort of locked operation: many concurrent requests may come at the same time.
@@ -108,10 +108,22 @@ detectInterrupt()
 - [X] define doublylinked list
 	- struct with head and tail 'node with data' nodes
 	- [X] add node operation
-	- [ ] update totals operation
-	- [ ] discard nodes operation
+	- [X] update totals operation
+	- [X] discard nodes operation
 		- better to define it with an open interval
 		- requires HEAD and NEWHEAD as parameters
 		- nodes, starting from HEAD will be removed one by one until NEWHEAD is reached
-		- NEWHEAD will be the new HEAD of the doubly linked list after the operation
+		- NEWHEAD will be the new HEAD of the doubly linked list after the operations
+- [ ] extract discard node subset logic from update totals
+    - [ ] replace discard logic @ UpdateTotals with new function
+- [ ] get total accumulated requests
+- [ ] write state to file
+- [ ] read state from file
+- [ ] identify serialization points
+- [ ] http server layer
+    - [ ] retrieve timestamp from request
+- [ ] concurrency concerns
+    - [ ] locked write access to cache?
+    - [ ] locked write access to doublyLinkedList?
+- [ ] response writer
 */
