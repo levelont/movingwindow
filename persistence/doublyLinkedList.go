@@ -1,6 +1,7 @@
 package persistence
 
 import (
+	"fmt"
 	"strconv"
 	"strings"
 	"time"
@@ -10,6 +11,10 @@ type requestCount struct {
 	timestamp               time.Time
 	requestsCount           int
 	accumulatedRequestCount int
+}
+
+func (r requestCount) Dump() string {
+	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}\n", r.timestamp.String(), r.requestsCount, r.accumulatedRequestCount)
 }
 
 type requestCountNode struct {
@@ -37,6 +42,7 @@ func (list requestCountDoublyLinkedList) AppendToTail(data requestCount) request
 	} else {
 		// new node as next of tail
 		list.tail.right = &newNode
+		newNode.left = list.tail
 		// tail = next of tail
 		list.tail = &newNode
 	}
@@ -58,13 +64,50 @@ func (list requestCountDoublyLinkedList) Dump() string {
 	return result.String()
 }
 
-func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) {
+func (list requestCountDoublyLinkedList) DumpBackwards() string {
+	var result strings.Builder
+	currentNode := list.tail
+	for {
+		if currentNode == nil {
+			break
+		}
+		result.WriteString(strconv.Itoa(currentNode.data.requestsCount))
+		currentNode = currentNode.left
+	}
+
+	return result.String()
+}
+
+func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) requestCountDoublyLinkedList {
 	currentNode := list.tail.left
 	for {
 		if currentNode == nil {
 			break
 		}
 
-		//TODO LEFT HERE
+		if within60SecondsFromReference, _ := currentNode.WithinDurationFrom(time.Duration(60)*time.Second, time.Second, reference); within60SecondsFromReference {
+			currentNode.data.accumulatedRequestCount = currentNode.data.requestsCount + currentNode.right.data.accumulatedRequestCount
+			currentNode = currentNode.left
+		} else {
+			nodeToBeDiscarded := list.head
+			list.head = currentNode.right
+			currentNode.right = nil
+			currentNode.left = nil
+			currentNode = nil
+
+			//discard
+			for {
+				if nodeToBeDiscarded == nil {
+					break
+				}
+
+				temp := nodeToBeDiscarded.right
+				nodeToBeDiscarded.left = nil
+				nodeToBeDiscarded.right = nil
+				nodeToBeDiscarded = temp
+			}
+		}
 	}
+
+	return list
 }
