@@ -137,6 +137,7 @@ func TestRequestCountNode_withinDurationBefore(t *testing.T) {
 type updateTotalsTest struct {
 	listData     []RequestCount //a linked list will be constructed with these values in the same order of the slice
 	reference    RequestCount
+	timeframe    time.Duration
 	expectedHead RequestCount
 }
 
@@ -149,6 +150,7 @@ var updateTotalsTestList = []updateTotalsTest{
 			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, accumulatedRequestCount: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 01, 02, 0, time.UTC)},
+		timeframe:    time.Duration(60) * time.Second,
 		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 1, accumulatedRequestCount: 3},
 	},
 	{ // Head + 3 outside range
@@ -161,6 +163,7 @@ var updateTotalsTestList = []updateTotalsTest{
 			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, accumulatedRequestCount: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 01, 02, 0, time.UTC)},
+		timeframe:    time.Duration(60) * time.Second,
 		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 3, accumulatedRequestCount: 6},
 	},
 	{ // Big values, all inside range
@@ -173,6 +176,7 @@ var updateTotalsTestList = []updateTotalsTest{
 			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, accumulatedRequestCount: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 59, 0, time.UTC)},
+		timeframe:    time.Duration(60) * time.Second,
 		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), RequestsCount: 100000, accumulatedRequestCount: 111111},
 	},
 }
@@ -181,7 +185,7 @@ func TestRequestCountDoublyLinkedList_UpdateTotals(t *testing.T) {
 	for i, test := range updateTotalsTestList {
 
 		list := buildDoublyLinkedList(test.listData)
-		list = list.UpdateTotals(test.reference)
+		list = list.UpdateTotals(test.reference, test.timeframe)
 
 		if list.head.data != test.expectedHead {
 			t.Fatalf("Expected '%+v' but got '%+v' for test '%v' with values '%v'. List: '%v'\n", test.expectedHead.Dump(), list.head.data.Dump(), i, test, dumpList(list))

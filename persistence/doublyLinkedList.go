@@ -124,7 +124,7 @@ func (list RequestCountDoublyLinkedList) UpdateTotals(reference RequestCount, ti
 			break
 		}
 
-		if withinTimeFrame, _ := currentNode.WithinDurationBefore(timeFrame*time.Second, time.Second, reference); withinTimeFrame {
+		if withinTimeFrame, _ := currentNode.WithinDurationBefore(timeFrame, time.Second, reference); withinTimeFrame {
 			currentNode.data.accumulatedRequestCount = currentNode.data.RequestsCount + currentNode.right.data.accumulatedRequestCount
 			currentNode = currentNode.left
 		} else {

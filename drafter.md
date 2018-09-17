@@ -118,17 +118,24 @@ detectInterrupt()
 - [X] extract discard node subset logic from update totals
     - [X] replace discard logic @ UpdateTotals with new function
 - [X] get total accumulated requests
-- [ ] http server layer
-    - [ ] retrieve timestamp from request
+- [X] http server layer
+    - [INVALID] retrieve timestamp from request
 - [ ] signal manager MUST close the communication channels!
 - [ ] logging with different components and visibilities
-- [ ] response writer
+- [X] response writer
 - [ ] high availability 
     - [ ] identify serialization points
     - [ ] write state to file
     - [ ] read state from file
-- [ ] concurrency concerns
-    - [ ] locked write access to cache?
-    - [ ] locked write access to doublyLinkedList?
+- [INVALID] concurrency concerns
+    - [INVALID] locked write access to cache?
+    - [INVALID] locked write access to doublyLinkedList?
+- [ ] refactorings
+    - [ ] structure of http_test
+    - [ ] structure of main
+    - [ ] wrapper for doublylinkedList
+        - [ ] a better name!
+- [ ] TODOs 
+- [ ] precision of the algorithm - allow for smaller than 1s
 - [ ] linter warnings
 
