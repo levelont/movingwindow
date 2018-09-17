@@ -22,6 +22,13 @@ func (r RequestCount) Dump() string {
 	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}\n", r.Timestamp.String(), r.RequestsCount, r.accumulatedRequestCount)
 }
 
+//TODO test coverage
+//TODO analyze test coverage of entire project
+func (r *RequestCount) Increment() {
+	r.RequestsCount++
+	r.accumulatedRequestCount++
+}
+
 type requestCountNode struct {
 	data  RequestCount
 	left  *requestCountNode
@@ -68,6 +75,7 @@ Discard all nodes between head and lastNodeToDiscard from the list. Assumes that
 Specifying tail as lastNodeToDiscard discards all nodes from the list. The resulting list will have head = tail = nil.
 Otherwise, lastNodeToDiscard.right will be the new head of the list
 //TODO no need for this to be exported
+//TODO after creating a workflow wrapper, not much will be needed to be exported
 */
 func (list RequestCountDoublyLinkedList) FrontDiscardUntil(lastNodeToDiscard *requestCountNode) RequestCountDoublyLinkedList {
 	currentNode := list.head
@@ -101,22 +109,22 @@ func (list RequestCountDoublyLinkedList) FrontDiscardUntil(lastNodeToDiscard *re
 }
 
 /*
-Backward-traverses the list starting from the node left to the tail. Checks that each node is within 60 seconds before
-the reference.
+Backward-traverses the list starting from the node left to the tail. Checks that each node is within the provided
+timeframe in seconds before the reference.
 Nodes with timestamps in the time frame will get their accumulatedRequestCount value updated to the sum of their
 requestCount and the accumulated of the node right to them.
 As such, the total of accumulated requests received between the reference and the previous 60 seconds will be the
 accumulatedRequestCount value of the head of the list.
 Nodes outside of the time frame will be discarded from the list.
 */
-func (list RequestCountDoublyLinkedList) UpdateTotals(reference RequestCount) RequestCountDoublyLinkedList {
+func (list RequestCountDoublyLinkedList) UpdateTotals(reference RequestCount, timeFrame time.Duration) RequestCountDoublyLinkedList {
 	currentNode := list.tail.left
 	for {
 		if currentNode == nil {
 			break
 		}
 
-		if within60SecondsFromReference, _ := currentNode.WithinDurationBefore(time.Duration(60)*time.Second, time.Second, reference); within60SecondsFromReference {
+		if withinTimeFrame, _ := currentNode.WithinDurationBefore(timeFrame*time.Second, time.Second, reference); withinTimeFrame {
 			currentNode.data.accumulatedRequestCount = currentNode.data.RequestsCount + currentNode.right.data.accumulatedRequestCount
 			currentNode = currentNode.left
 		} else {

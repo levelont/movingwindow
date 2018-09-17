@@ -26,9 +26,26 @@ const (
 // and therefore not exported.
 //thus, a specific counter is added to the request cache.
 //TODO names should be used for this differentiation.
-type requestCount struct {
+type cache struct {
 	persistence.RequestCount
 	AccumulatedRequestCount int
+}
+
+//TODO test
+//TODO DOC why the increments?
+func NewCache(timestamp time.Time, totalAccumulated int) cache {
+	requestCount := persistence.RequestCount{Timestamp: timestamp}
+	requestCount.Increment()
+	return cache{
+		RequestCount:            requestCount,
+		AccumulatedRequestCount: totalAccumulated + 1,
+	}
+}
+
+//TODO tests
+func (c *cache) Increment() {
+	c.RequestCount.Increment()
+	c.AccumulatedRequestCount++
 }
 
 //TODO name
@@ -38,12 +55,21 @@ type persistenceData struct {
 	reference    persistence.RequestCount
 }
 
+func NewPersistenceData(cache cache, timestamp time.Time) persistenceData {
+	return persistenceData{
+		requestCount: cache.RequestCount,
+		reference: persistence.RequestCount{
+			Timestamp: timestamp,
+		},
+	}
+}
+
 //TODO variable names - the type name is also silly
 type communication struct {
-	cache                requestCount
+	cache                cache
 	persistedObjects     persistence.RequestCountDoublyLinkedList
 	exchangeTimestamp    chan time.Time
-	exchangeRequestCount chan requestCount
+	exchangeRequestCount chan cache
 	exchangePersistence  chan persistenceData
 	exchangeAccumulated  chan int
 }
@@ -51,32 +77,30 @@ type communication struct {
 func NewCommunication() communication {
 	return communication{
 		exchangeTimestamp:    make(chan time.Time),
-		exchangeRequestCount: make(chan requestCount),
+		exchangeRequestCount: make(chan cache),
 		exchangePersistence:  make(chan persistenceData),
 		exchangeAccumulated:  make(chan int),
 	}
 }
 
-var (
-	listenAddress string
-)
-
 type server struct {
-	router        *http.ServeMux
-	logger        *log.Logger
-	communication communication
+	router               *http.ServeMux
+	logger               *log.Logger
+	communication        communication
+	persistenceTimeFrame time.Duration
 	http.Server
 }
 
-func NewServer(listenAddress string) *server {
+func NewServer(listenAddress string, persistenceTimeFrame time.Duration) *server {
 	router := http.NewServeMux()
 	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
 	errorLogger := log.New(os.Stderr, "http: ", log.LstdFlags)
 	communication := NewCommunication()
 	server := &server{
-		router:        router,
-		logger:        logger,
-		communication: communication,
+		router:               router,
+		logger:               logger,
+		communication:        communication,
+		persistenceTimeFrame: persistenceTimeFrame,
 		Server: http.Server{
 			Addr:         listenAddress,
 			Handler:      tracing(nextRequestID)(logging(logger)(router)),
@@ -99,10 +123,20 @@ func nextRequestID() string {
 }
 
 func main() {
-	flag.StringVar(&listenAddress, "listen-addr", ":5000", "server listen address")
+	var listenAddress string
+	//todo validate
+	//todo test different timeframes
+	var persistenceTimeFrame string
+	flag.StringVar(&listenAddress, "listen-address", ":5000", "server listen address")
+	flag.StringVar(&persistenceTimeFrame, "persistence-time-interval", "60s", "time frame for which connection counts will be calculated")
 	flag.Parse()
 
-	server := NewServer(listenAddress)
+	parsedTimeframe, err := time.ParseDuration(persistenceTimeFrame)
+	if err != nil {
+		panic(err) //OK: need env variable to be parsable.
+	}
+
+	server := NewServer(listenAddress, parsedTimeframe)
 	server.logger.Println("Server is starting...")
 	server.routes()
 
@@ -125,7 +159,7 @@ func main() {
 		close(done)
 	}()
 
-	server.logger.Println("Server is ready to handle requests at", listenAddress)
+	server.logger.Println("Server is ready to handle requests at", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		server.logger.Fatalf("Could not listen on %s: %v\n", listenAddress, err)
 	}
@@ -154,8 +188,10 @@ func (s *server) startCommunicationProcessor() {
 		for {
 			persistenceData, ok := <-com.exchangePersistence
 			if ok {
+				//TODO assignments necessary?
+				//TODO workflow wrapper?
 				com.persistedObjects = com.persistedObjects.AppendToTail(persistenceData.requestCount)
-				com.persistedObjects = com.persistedObjects.UpdateTotals(persistenceData.reference)
+				com.persistedObjects = com.persistedObjects.UpdateTotals(persistenceData.reference, s.persistenceTimeFrame)
 				com.exchangeAccumulated <- com.persistedObjects.TotalAccumulatedRequestCount()
 			} else {
 				break
@@ -178,8 +214,7 @@ func (s *server) startCommunicationProcessor() {
 				}
 
 				if com.cache.CompareTimestampWithPrecision(requestTimestamp, time.Second) {
-					com.cache.RequestsCount = com.cache.RequestsCount + 1
-					com.cache.AccumulatedRequestCount = com.cache.RequestsCount
+					com.cache.Increment()
 					s.logger.Printf("COM: Incremented cached requestTimestamp to '%v'\n", com.cache.RequestsCount)
 				} else {
 					//timestamps are different.
@@ -187,23 +222,16 @@ func (s *server) startCommunicationProcessor() {
 					//it gives back the total for last 60s
 					//TODO
 
-					persistenceUpdate := persistenceData{
-						requestCount: com.cache.RequestCount,
-						reference: persistence.RequestCount{
-							Timestamp: requestTimestamp,
-						},
-					}
+					persistenceUpdate := NewPersistenceData(com.cache, requestTimestamp)
+					s.logger.Printf("COM: Sending persistence Update :'%v'\n", persistenceUpdate)
 
 					s.communication.exchangePersistence <- persistenceUpdate
 					totalAccumulated := <-s.communication.exchangeAccumulated
 
-					com.cache = requestCount{
-						RequestCount: persistence.RequestCount{
-							Timestamp:     requestTimestamp,
-							RequestsCount: 1,
-						},
-						AccumulatedRequestCount: totalAccumulated,
-					}
+					s.logger.Printf("COM: Received new total accumulate of '%v'\n", totalAccumulated)
+
+					com.cache = NewCache(requestTimestamp, totalAccumulated)
+					s.logger.Printf("COM: Updated cache to '%v'\n", com.cache)
 				}
 
 				//there is only one value that needs be returned: the total count.
