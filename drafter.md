@@ -119,6 +119,7 @@ detectInterrupt()
 - [X] get total accumulated requests
 - [ ] http server layer
     - [ ] retrieve timestamp from request
+- [ ] signal manager MUST close the communication channels!
 - [ ] logging with different components and visibilities
 - [ ] response writer
 - [ ] high availability 

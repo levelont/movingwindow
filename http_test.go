@@ -9,7 +9,6 @@ import (
 	"reflect"
 	"simplesurance/persistence"
 	"sort"
-	"sync"
 	"testing"
 	"time"
 )
@@ -17,7 +16,7 @@ import (
 //use an array to store requestCounts
 //the result of the request is a marshalled JSON that we can unmarshall into a requestCount object
 //we just need the structure to implement sort interface with
-
+//TODO move these variables and the test somewhere else? or just document properly.
 type requestCountList []persistence.RequestCount
 
 func (s requestCountList) Len() int {
@@ -111,7 +110,6 @@ func TestRequestCountListSorting(t *testing.T) {
 }
 
 func TestHandleAbout(t *testing.T) {
-	log.Println("Is this turned on?")
 	srv := NewServer(":5000")
 	//srv.logger.SetOutput(ioutil.Discard)
 	srv.routes()
@@ -123,27 +121,31 @@ func TestHandleAbout(t *testing.T) {
 
 	handler := srv.index(srv.communication)
 
-	var wg sync.WaitGroup
-
-	numRequests := 3
+	numRequests := 1000
 	responses := make(requestCountList, 0, numRequests)
-	responseReady := make(chan persistence.RequestCount)
+	//TODO names
+	dispatcherToAppender := make(chan persistence.RequestCount)
+	appenderToDispatcher := make(chan bool)
+	done := make(chan bool)
 
-	go func(r requestCountList, rc chan persistence.RequestCount) {
+	go func() {
 		for {
 			log.Println("APPENDER: Waiting for response...")
-			receivedResponse := <-rc
-			r = append(r, receivedResponse)
-			log.Printf("APPENDER: Successfully added response '%v'\n", receivedResponse)
-			rc <- receivedResponse
+			receivedResponse, ok := <-dispatcherToAppender
+			if ok {
+				responses = append(responses, receivedResponse)
+				log.Printf("APPENDER: Successfully added response '%v'\n", receivedResponse)
+				appenderToDispatcher <- true
+			} else {
+				break
+			}
 		}
-	}(responses, responseReady)
+	}()
 
 	var w *httptest.ResponseRecorder
 	for i := 0; i < numRequests; i++ {
 		w = httptest.NewRecorder()
-		wg.Add(1)
-		go func(w *httptest.ResponseRecorder, rc chan persistence.RequestCount) {
+		go func(w *httptest.ResponseRecorder) {
 			handler(w, req)
 
 			buf := new(bytes.Buffer)
@@ -152,20 +154,33 @@ func TestHandleAbout(t *testing.T) {
 			var receivedResponse persistence.RequestCount
 			json.Unmarshal(buf.Bytes(), &receivedResponse)
 			log.Printf("DISPATCHER: Received response: '%v'\n", receivedResponse)
-			rc <- receivedResponse
-			<-rc
+			dispatcherToAppender <- receivedResponse
+			<-appenderToDispatcher
 			log.Print("DISPATCHER: Finished processing.")
-			wg.Done()
-		}(w, responseReady)
+			done <- true
+		}(w)
 	}
 
-	wg.Wait()
-	close(responseReady)
+	for i := 0; i < numRequests; i++ {
+		<-done
+	}
+	close(done)
+	close(dispatcherToAppender)
+	close(appenderToDispatcher)
 
-	log.Printf("Got '%v' responses: '%v'\n", len(responses), responses)
+	//TODO check status of all responses, not just the last one.
 	if w.Result().StatusCode != http.StatusOK {
 		t.Error("Something went wrong")
 	}
-}
 
-//TODO signal manager MUST close the communication channels!
+	if len(responses) != numRequests {
+		t.Errorf("Expected to receive '%v' responses, but got '%v' instead.\n", len(responses), numRequests)
+	}
+
+	sort.Sort(responses)
+	for index, response := range responses {
+		if response.RequestsCount != index+1 {
+			t.Errorf("Expected received response '%v' to have a count of '%v' but didn't.\n", response, index+1)
+		}
+	}
+}
