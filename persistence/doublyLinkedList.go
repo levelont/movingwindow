@@ -5,18 +5,22 @@ import (
 	"time"
 )
 
-type requestCount struct {
-	timestamp               time.Time
-	requestsCount           int
+type RequestCount struct {
+	Timestamp               time.Time
+	RequestsCount           int
 	accumulatedRequestCount int
 }
 
-func (r requestCount) Dump() string {
-	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}\n", r.timestamp.String(), r.requestsCount, r.accumulatedRequestCount)
+func (r RequestCount) Empty() bool {
+	return r.Timestamp.IsZero()
+}
+
+func (r RequestCount) Dump() string {
+	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}\n", r.Timestamp.String(), r.RequestsCount, r.accumulatedRequestCount)
 }
 
 type requestCountNode struct {
-	data  requestCount
+	data  RequestCount
 	left  *requestCountNode
 	right *requestCountNode
 }
@@ -24,8 +28,8 @@ type requestCountNode struct {
 /*
 Checks if the timestamp of the receiver is within the provided duration before the reference.
 */
-func (node requestCountNode) WithinDurationBefore(duration time.Duration, precision time.Duration, reference requestCount) (bool, time.Duration) {
-	difference := reference.timestamp.Sub(node.data.timestamp).Truncate(precision)
+func (node requestCountNode) WithinDurationBefore(duration time.Duration, precision time.Duration, reference RequestCount) (bool, time.Duration) {
+	difference := reference.Timestamp.Sub(node.data.Timestamp).Truncate(precision)
 	return difference.Nanoseconds() <= duration.Nanoseconds(), difference
 }
 
@@ -37,7 +41,7 @@ type requestCountDoublyLinkedList struct {
 /*
 Creates an new node with the provided data and sets it both as the right node of the current tail and as the new tail of the list
 */
-func (list requestCountDoublyLinkedList) AppendToTail(data requestCount) requestCountDoublyLinkedList {
+func (list requestCountDoublyLinkedList) AppendToTail(data RequestCount) requestCountDoublyLinkedList {
 	//new node with provided data
 	newNode := requestCountNode{data: data}
 	if list.head == nil {
@@ -99,7 +103,7 @@ As such, the total of accumulated requests received between the reference and th
 accumulatedRequestCount value of the head of the list.
 Nodes outside of the time frame will be discarded from the list.
 */
-func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) requestCountDoublyLinkedList {
+func (list requestCountDoublyLinkedList) UpdateTotals(reference RequestCount) requestCountDoublyLinkedList {
 	currentNode := list.tail.left
 	for {
 		if currentNode == nil {
@@ -107,7 +111,7 @@ func (list requestCountDoublyLinkedList) UpdateTotals(reference requestCount) re
 		}
 
 		if within60SecondsFromReference, _ := currentNode.WithinDurationBefore(time.Duration(60)*time.Second, time.Second, reference); within60SecondsFromReference {
-			currentNode.data.accumulatedRequestCount = currentNode.data.requestsCount + currentNode.right.data.accumulatedRequestCount
+			currentNode.data.accumulatedRequestCount = currentNode.data.RequestsCount + currentNode.right.data.accumulatedRequestCount
 			currentNode = currentNode.left
 		} else {
 			list = list.FrontDiscardUntil(currentNode)
@@ -124,4 +128,8 @@ Assumes that UpdateTotals was called right before.
 */
 func (list requestCountDoublyLinkedList) TotalAccumulatedRequestCount() int {
 	return list.head.data.accumulatedRequestCount
+}
+
+func (r RequestCount) CompareTimestampWithPrecision(t time.Time, precision time.Duration) bool {
+	return r.Timestamp.Truncate(precision) == t.Truncate(precision)
 }

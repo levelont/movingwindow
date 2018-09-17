@@ -119,6 +119,7 @@ detectInterrupt()
 - [X] get total accumulated requests
 - [ ] http server layer
     - [ ] retrieve timestamp from request
+- [ ] logging with different components and visibilities
 - [ ] response writer
 - [ ] high availability 
     - [ ] identify serialization points
@@ -127,4 +128,5 @@ detectInterrupt()
 - [ ] concurrency concerns
     - [ ] locked write access to cache?
     - [ ] locked write access to doublyLinkedList?
+- [ ] linter warnings
 */
