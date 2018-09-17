@@ -17,7 +17,7 @@ import (
 //the result of the request is a marshalled JSON that we can unmarshall into a requestCount object
 //we just need the structure to implement sort interface with
 //TODO move these variables and the test somewhere else? or just document properly.
-type requestCountList []persistence.RequestCount
+type requestCountList []requestCount
 
 func (s requestCountList) Len() int {
 	return len(s)
@@ -41,61 +41,61 @@ type requestCountListSortingTest struct {
 var requestCountListSortingTestList = []requestCountListSortingTest{
 	{ // Basic test
 		unsorted: requestCountList{
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
 		},
 		sorted: requestCountList{
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
 		},
 	},
 
 	{ // Timestamp collisions
 		unsorted: requestCountList{
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 3},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 1},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 3}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 1}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
 		},
 		sorted: requestCountList{
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 1},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 3},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 1}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 3}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
 		},
 	},
 	{ // Timestamp and request count collisions
 		unsorted: requestCountList{
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 3},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 1},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 3}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 1}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
 		},
 		sorted: requestCountList{
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 1},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 3},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)},
-			persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 1}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 2}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestsCount: 3}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
+			requestCount{RequestCount: persistence.RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
 		},
 	},
 }
@@ -107,6 +107,37 @@ func TestRequestCountListSorting(t *testing.T) {
 			t.Fatalf("Expected list to be sorted after calling sort on it, but it didn't match the expected values. Test: '%v', Data: '%v'\n", i, test)
 		}
 	}
+}
+
+//parms for index testing
+//'intervals' for requests and ammount of requests to be sent for each of em
+//total requests at the end
+
+type requestsOrder struct {
+	numRequests int
+	timeInstant int
+}
+
+type indexHandleTest struct {
+	requestList []requestsOrder
+	total       int
+}
+
+var indexHandleTestList = []indexHandleTest{
+	{ //single instant, 1000 requests
+		requestList: []requestsOrder{
+			{numRequests: 1000, timeInstant: 1},
+		},
+		total: 1000,
+	},
+	{ // three instants, 1s=1000, 2s=1000, 3s=1000
+		requestList: []requestsOrder{
+			{numRequests: 1000, timeInstant: 1},
+			{numRequests: 1000, timeInstant: 2},
+			{numRequests: 1000, timeInstant: 3},
+		},
+		total: 3000,
+	},
 }
 
 func TestHandleAbout(t *testing.T) {
@@ -124,7 +155,7 @@ func TestHandleAbout(t *testing.T) {
 	numRequests := 1000
 	responses := make(requestCountList, 0, numRequests)
 	//TODO names
-	dispatcherToAppender := make(chan persistence.RequestCount)
+	dispatcherToAppender := make(chan requestCount)
 	appenderToDispatcher := make(chan bool)
 	done := make(chan bool)
 
@@ -151,7 +182,7 @@ func TestHandleAbout(t *testing.T) {
 			buf := new(bytes.Buffer)
 			buf.ReadFrom(w.Result().Body)
 
-			var receivedResponse persistence.RequestCount
+			var receivedResponse requestCount
 			json.Unmarshal(buf.Bytes(), &receivedResponse)
 			log.Printf("DISPATCHER: Received response: '%v'\n", receivedResponse)
 			dispatcherToAppender <- receivedResponse

@@ -5,6 +5,9 @@ import (
 	"time"
 )
 
+//todo names: see messed up usage @startCommunicationProcessor
+// maybe just count and accumulated?
+//TODO hide accumulatedRequestCount from json encoding
 type RequestCount struct {
 	Timestamp               time.Time
 	RequestsCount           int
@@ -28,12 +31,14 @@ type requestCountNode struct {
 /*
 Checks if the timestamp of the receiver is within the provided duration before the reference.
 */
+//TODO no real need to have the reference as a requestCount. Can be a simple timestamp
 func (node requestCountNode) WithinDurationBefore(duration time.Duration, precision time.Duration, reference RequestCount) (bool, time.Duration) {
 	difference := reference.Timestamp.Sub(node.data.Timestamp).Truncate(precision)
 	return difference.Nanoseconds() <= duration.Nanoseconds(), difference
 }
 
-type requestCountDoublyLinkedList struct {
+//TODO name
+type RequestCountDoublyLinkedList struct {
 	head *requestCountNode
 	tail *requestCountNode
 }
@@ -41,7 +46,7 @@ type requestCountDoublyLinkedList struct {
 /*
 Creates an new node with the provided data and sets it both as the right node of the current tail and as the new tail of the list
 */
-func (list requestCountDoublyLinkedList) AppendToTail(data RequestCount) requestCountDoublyLinkedList {
+func (list RequestCountDoublyLinkedList) AppendToTail(data RequestCount) RequestCountDoublyLinkedList {
 	//new node with provided data
 	newNode := requestCountNode{data: data}
 	if list.head == nil {
@@ -62,8 +67,9 @@ func (list requestCountDoublyLinkedList) AppendToTail(data RequestCount) request
 Discard all nodes between head and lastNodeToDiscard from the list. Assumes that lastNodeToDiscard is part of the list
 Specifying tail as lastNodeToDiscard discards all nodes from the list. The resulting list will have head = tail = nil.
 Otherwise, lastNodeToDiscard.right will be the new head of the list
+//TODO no need for this to be exported
 */
-func (list requestCountDoublyLinkedList) FrontDiscardUntil(lastNodeToDiscard *requestCountNode) requestCountDoublyLinkedList {
+func (list RequestCountDoublyLinkedList) FrontDiscardUntil(lastNodeToDiscard *requestCountNode) RequestCountDoublyLinkedList {
 	currentNode := list.head
 	if lastNodeToDiscard == list.tail {
 		list.head = nil
@@ -103,7 +109,7 @@ As such, the total of accumulated requests received between the reference and th
 accumulatedRequestCount value of the head of the list.
 Nodes outside of the time frame will be discarded from the list.
 */
-func (list requestCountDoublyLinkedList) UpdateTotals(reference RequestCount) requestCountDoublyLinkedList {
+func (list RequestCountDoublyLinkedList) UpdateTotals(reference RequestCount) RequestCountDoublyLinkedList {
 	currentNode := list.tail.left
 	for {
 		if currentNode == nil {
@@ -126,7 +132,7 @@ func (list requestCountDoublyLinkedList) UpdateTotals(reference RequestCount) re
 /*
 Assumes that UpdateTotals was called right before.
 */
-func (list requestCountDoublyLinkedList) TotalAccumulatedRequestCount() int {
+func (list RequestCountDoublyLinkedList) TotalAccumulatedRequestCount() int {
 	return list.head.data.accumulatedRequestCount
 }
 

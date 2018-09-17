@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func dumpList(list requestCountDoublyLinkedList) string {
+func dumpList(list RequestCountDoublyLinkedList) string {
 	var result strings.Builder
 	currentNode := list.head
 	for {
@@ -22,7 +22,7 @@ func dumpList(list requestCountDoublyLinkedList) string {
 	return result.String()
 }
 
-func dumpListBackwards(list requestCountDoublyLinkedList) string {
+func dumpListBackwards(list RequestCountDoublyLinkedList) string {
 	var result strings.Builder
 	currentNode := list.tail
 	for {
@@ -36,8 +36,8 @@ func dumpListBackwards(list requestCountDoublyLinkedList) string {
 	return result.String()
 }
 
-func buildDoublyLinkedList(values []RequestCount) requestCountDoublyLinkedList {
-	var list requestCountDoublyLinkedList
+func buildDoublyLinkedList(values []RequestCount) RequestCountDoublyLinkedList {
+	var list RequestCountDoublyLinkedList
 	for _, value := range values {
 		list = list.AppendToTail(value)
 	}
@@ -189,7 +189,7 @@ func TestRequestCountDoublyLinkedList_UpdateTotals(t *testing.T) {
 	}
 }
 
-func compareLists(l1 requestCountDoublyLinkedList, l2 requestCountDoublyLinkedList) bool {
+func compareLists(l1 RequestCountDoublyLinkedList, l2 RequestCountDoublyLinkedList) bool {
 	currentNodeL1 := l1.head
 	currentNodeL2 := l2.head
 	listsAreEqual := true
@@ -387,7 +387,7 @@ var frontDiscardTestList = []frontDiscardTest{
 	},
 }
 
-func findRequestCountInList(node RequestCount, list requestCountDoublyLinkedList) (*requestCountNode, error) {
+func findRequestCountInList(node RequestCount, list RequestCountDoublyLinkedList) (*requestCountNode, error) {
 	currentNode := list.head
 	var result *requestCountNode
 	for {
