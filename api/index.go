@@ -15,14 +15,19 @@ not make it to the client. Information hiding is the main purpose of this struct
 Exported for tests to consume
 */
 type Response struct {
-	timestamp    time.Time `json:"timestamp"`
-	RequestCount int       `json:"requestCount"`
+	timestamp    time.Time
+	RequestCount int `json:"requestCount"`
 }
 
+/* Allows for construction with specification of the timestamp member while avoid exporting of the timestamp
+field, which needs to be hidden from the client.
+*/
 func NewResponse(timestamp time.Time, requestCount int) Response {
 	return Response{timestamp: timestamp, RequestCount: requestCount}
 }
 
+/* Provide access to the timestamp field while avoiding to export it.
+ */
 func (r Response) Timestamp() time.Time {
 	return r.timestamp
 }
@@ -39,8 +44,12 @@ func (r ResponseError) ToJSON() string {
 	return string(encodedError)
 }
 
-/*Delaying init until the handler is actually called via sync.Once saves on http server boot up time.
- */
+/* Handler hangs on the server so that it can access to all communication and persistence variables.
+Variables are passed to the handler function in a closure fashion. Updating the communication values
+on the server will therefore have no effect in it's functionality.
+See communication::StartCommunicationProcessor for documentation on the workflow.
+Delaying init until the handler is actually called via sync.Once saves on http server boot up time.
+*/
 func (s *server) Index(com communication) http.HandlerFunc {
 	var init sync.Once
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -51,7 +60,6 @@ func (s *server) Index(com communication) http.HandlerFunc {
 			return
 		}
 
-		//get timestamp, truncate to seconds
 		requestTimestamp := time.Now().Truncate(time.Second)
 		s.Logger.Printf("RequestTimestamp: '%v'\n", requestTimestamp.Format(time.RFC3339))
 

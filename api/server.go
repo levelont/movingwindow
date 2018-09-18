@@ -20,6 +20,8 @@ func nextRequestID() string {
 	return fmt.Sprintf("%d", time.Now().UnixNano())
 }
 
+/* Wrapper for all information required in the handler.
+ */
 type server struct {
 	router               *http.ServeMux
 	Logger               *log.Logger
@@ -53,6 +55,11 @@ func NewServer(env Environment) *server {
 	return server
 }
 
+/*Read persisted state from disk during startup.
+Keep in mind: by the time the server has been restarted, the persisted values read and a new request is to be handled, the
+persisted request counts might no longer be in the persistence time frame. In that case, they will be discarded for the
+next request count computation.
+*/
 func (s *server) readStateFromDisk() {
 	if _, err := os.Open(s.persistenceFile); err != nil {
 		s.Logger.Printf("No state file could be found under '%v': %v. Will work on a clean slate.\n", s.persistenceFile, err)

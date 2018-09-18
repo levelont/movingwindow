@@ -31,11 +31,6 @@ var encodeStateTestList = []encodeStateTest{
 	},
 }
 
-//encode and file is not present
-//encode and file is present -> overwrite
-//read and no file is present -> error
-//read and path is error -> error
-
 func TestEncodeState(t *testing.T) {
 	//setup
 	testDir := "test_data"
@@ -46,7 +41,7 @@ func TestEncodeState(t *testing.T) {
 	filePath := testDir + "/encodedState.bin"
 
 	for testIndex, test := range encodeStateTestList {
-		providedState := State{Past: test.statePastData.BuildDoublyLinkedList(), Present: test.statePresent}
+		providedState := State{Past: test.statePastData.ToRequestCounter(), Present: test.statePresent}
 		err := providedState.WriteToFile(filePath)
 		if err != nil {
 			t.Fatalf("Error writing state to path '%v'.\nTest: '%v'\n Data: '%v'\n \nError: '%v'\n", filePath, testIndex, test, err)

@@ -5,6 +5,11 @@ import (
 	"time"
 )
 
+/* Configuration of the application retrieved via environment variables:
+- ListenAddress: port on which the server will be listening
+- PersistenceFile: destination file on disk for serialization of state upon incoming interrupt signals
+- PersistenceTimeFrame: duration of the moving window for which total incoming requests will be calculated
+*/
 type Environment struct {
 	ListenAddress              string
 	PersistenceFile            string
@@ -12,6 +17,10 @@ type Environment struct {
 	ParsedPersistenceTimeFrame time.Duration
 }
 
+/* Parsing of command line flags to set environment values.
+If missing, defaults will be provided.
+Errors parsing the provided timeframe will crash the server.
+*/
 func ParseEnvironment() Environment {
 	var env Environment
 	flag.StringVar(&env.ListenAddress, "listen-address", ":5000", "Server listen address")

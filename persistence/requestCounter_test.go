@@ -8,7 +8,7 @@ import (
 	"time"
 )
 
-func dumpList(list RequestCountDoublyLinkedList) string {
+func dumpList(list RequestCounter) string {
 	var result strings.Builder
 	currentNode := list.head
 	for {
@@ -22,7 +22,7 @@ func dumpList(list RequestCountDoublyLinkedList) string {
 	return result.String()
 }
 
-func dumpListBackwards(list RequestCountDoublyLinkedList) string {
+func dumpListBackwards(list RequestCounter) string {
 	var result strings.Builder
 	currentNode := list.tail
 	for {
@@ -70,9 +70,9 @@ var appendToTailTestList = []appendToTailTest{
 	},
 }
 
-func TestRequestCountDoublyLinkedList_AppendToTail(t *testing.T) {
+func TestRequestCounter_AppendToTail(t *testing.T) {
 	for i, test := range appendToTailTestList {
-		list := test.listData.BuildDoublyLinkedList()
+		list := test.listData.ToRequestCounter()
 		listDump := dumpList(list)
 		if listDump != test.expectedDump {
 			t.Fatalf("Expected '%v', got '%v' for test '%v' with values '%v'.\n", test.expectedDump, listDump, i, test)
@@ -172,9 +172,9 @@ var updateTotalsTestList = []updateTotalsTest{
 	},
 }
 
-func TestRequestCountDoublyLinkedList_UpdateTotals(t *testing.T) {
+func TestRequestCounter_UpdateTotals(t *testing.T) {
 	for i, test := range updateTotalsTestList {
-		list := test.listData.BuildDoublyLinkedList()
+		list := test.listData.ToRequestCounter()
 		list = list.UpdateTotals(test.reference, test.timeframe)
 
 		if list.head.data != test.expectedHead {
@@ -183,7 +183,7 @@ func TestRequestCountDoublyLinkedList_UpdateTotals(t *testing.T) {
 	}
 }
 
-func compareLists(l1 RequestCountDoublyLinkedList, l2 RequestCountDoublyLinkedList) bool {
+func compareLists(l1 RequestCounter, l2 RequestCounter) bool {
 	currentNodeL1 := l1.head
 	currentNodeL2 := l2.head
 	listsAreEqual := true
@@ -327,8 +327,8 @@ var compareListsTestList = []compareListsTest{
 
 func TestCompareLists(t *testing.T) {
 	for i, test := range compareListsTestList {
-		l1 := test.firstListData.BuildDoublyLinkedList()
-		l2 := test.secondListData.BuildDoublyLinkedList()
+		l1 := test.firstListData.ToRequestCounter()
+		l2 := test.secondListData.ToRequestCounter()
 		result := compareLists(l1, l2)
 		if result != test.expected {
 			t.Fatalf("Expected '%v' but got '%v' from test '%v' with data '%v'\n", test.expected, result, i, test)
@@ -381,7 +381,7 @@ var frontDiscardTestList = []frontDiscardTest{
 	},
 }
 
-func findRequestCountInList(node RequestCount, list RequestCountDoublyLinkedList) (*requestCountNode, error) {
+func findRequestCountInList(node RequestCount, list RequestCounter) (*requestCountNode, error) {
 	currentNode := list.head
 	var result *requestCountNode
 	for {
@@ -404,15 +404,15 @@ func findRequestCountInList(node RequestCount, list RequestCountDoublyLinkedList
 	return result, nil
 }
 
-func TestRequestCountDoublyLinkedList_FrontDiscardUntil(t *testing.T) {
+func TestRequestCounter_FrontDiscardUntil(t *testing.T) {
 	for i, test := range frontDiscardTestList {
-		initialList := test.listData.BuildDoublyLinkedList()
+		initialList := test.listData.ToRequestCounter()
 		lastNodeToDiscard, err := findRequestCountInList(test.lastDataToRemove, initialList)
 		if err != nil {
 			t.Fatal(err)
 		}
-		expectedListAfterDiscard := test.expectedResultListData.BuildDoublyLinkedList()
-		resultList := initialList.FrontDiscardUntil(lastNodeToDiscard)
+		expectedListAfterDiscard := test.expectedResultListData.ToRequestCounter()
+		resultList := initialList.frontDiscardUntil(lastNodeToDiscard)
 		if !compareLists(expectedListAfterDiscard, resultList) {
 			t.Fatalf("Expected '%v' but got '%v' from test '%v' with data '%v'\n", expectedListAfterDiscard, resultList, i, test)
 		}
@@ -445,9 +445,9 @@ var totalAccumulatedRequestCountTestList = []totalAccumulatedRequestCountTest{
 	},
 }
 
-func TestRequestCountDoublyLinkedList_TotalAccumulatedRequestCount(t *testing.T) {
+func TestRequestCounter_TotalAccumulatedRequestCount(t *testing.T) {
 	for i, test := range totalAccumulatedRequestCountTestList {
-		list := test.listData.BuildDoublyLinkedList()
+		list := test.listData.ToRequestCounter()
 		result := list.TotalAccumulatedRequestCount()
 		if result != test.expected {
 			t.Fatalf("Expected '%v' but got '%v' from test '%v' with data '%v'\n", result, test.expected, i, test)
