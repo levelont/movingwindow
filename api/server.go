@@ -40,7 +40,7 @@ func NewServer(env Environment) *server {
 		router:               router,
 		Logger:               logger,
 		Communication:        communication,
-		persistenceTimeFrame: env.ParsedPersistenceTimeFrame,
+		persistenceTimeFrame: env.PersistenceTimeFrame,
 		persistenceFile:      env.PersistenceFile,
 		Server: http.Server{
 			Addr:         env.ListenAddress,
