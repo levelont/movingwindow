@@ -36,30 +36,21 @@ func dumpListBackwards(list RequestCountDoublyLinkedList) string {
 	return result.String()
 }
 
-func buildDoublyLinkedList(values []RequestCount) RequestCountDoublyLinkedList {
-	var list RequestCountDoublyLinkedList
-	for _, value := range values {
-		list = list.AppendToTail(value)
-	}
-
-	return list
-}
-
 type appendToTailTest struct {
-	listData              []RequestCount //a linked list will be constructed with these values in the same order of the slice
-	expectedDump          string         //expected dumpList() output
-	expectedDumpBackwards string         //expected dumpListBackwards() output
+	listData              requestCountList //a linked list will be constructed with these values in the same order of the slice
+	expectedDump          string           //expected dumpList() output
+	expectedDumpBackwards string           //expected dumpListBackwards() output
 }
 
 var appendToTailTestList = []appendToTailTest{
-	{listData: []RequestCount{
+	{listData: requestCountList{
 		{RequestsCount: 1},
 	},
 		expectedDump:          "1",
 		expectedDumpBackwards: "1",
 	},
 
-	{listData: []RequestCount{
+	{listData: requestCountList{
 		{RequestsCount: 1},
 		{RequestsCount: 2},
 	},
@@ -67,7 +58,7 @@ var appendToTailTestList = []appendToTailTest{
 		expectedDumpBackwards: "21",
 	},
 
-	{listData: []RequestCount{
+	{listData: requestCountList{
 		{RequestsCount: 1},
 		{RequestsCount: 2},
 		{RequestsCount: 3},
@@ -81,7 +72,7 @@ var appendToTailTestList = []appendToTailTest{
 
 func TestRequestCountDoublyLinkedList_AppendToTail(t *testing.T) {
 	for i, test := range appendToTailTestList {
-		list := buildDoublyLinkedList(test.listData)
+		list := test.listData.BuildDoublyLinkedList()
 		listDump := dumpList(list)
 		if listDump != test.expectedDump {
 			t.Fatalf("Expected '%v', got '%v' for test '%v' with values '%v'.\n", test.expectedDump, listDump, i, test)
@@ -135,7 +126,7 @@ func TestRequestCountNode_withinDurationBefore(t *testing.T) {
 }
 
 type updateTotalsTest struct {
-	listData     []RequestCount //a linked list will be constructed with these values in the same order of the slice
+	listData     requestCountList //a linked list will be constructed with these values in the same order of the slice
 	reference    RequestCount
 	timeframe    time.Duration
 	expectedHead RequestCount
@@ -143,48 +134,48 @@ type updateTotalsTest struct {
 
 var updateTotalsTestList = []updateTotalsTest{
 	{ // Head outside range
-		listData: []RequestCount{
+		listData: requestCountList{
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), RequestsCount: 1000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 1},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), RequestsCount: 1},
-			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, accumulatedRequestCount: 1},
+			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 01, 02, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
-		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 1, accumulatedRequestCount: 3},
+		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 3},
 	},
 	{ // Head + 3 outside range
-		listData: []RequestCount{
+		listData: requestCountList{
 			{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), RequestsCount: 1000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 00, 0, time.UTC), RequestsCount: 1000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), RequestsCount: 1000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 3},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), RequestsCount: 2},
-			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, accumulatedRequestCount: 1},
+			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 01, 02, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
-		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 3, accumulatedRequestCount: 6},
+		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 3, AccumulatedRequestCount: 6},
 	},
 	{ // Big values, all inside range
-		listData: []RequestCount{
+		listData: requestCountList{
 			{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), RequestsCount: 100000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 00, 0, time.UTC), RequestsCount: 10000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), RequestsCount: 1000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 100},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), RequestsCount: 10},
-			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, accumulatedRequestCount: 1},
+			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 59, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
-		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), RequestsCount: 100000, accumulatedRequestCount: 111111},
+		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), RequestsCount: 100000, AccumulatedRequestCount: 111111},
 	},
 }
 
 func TestRequestCountDoublyLinkedList_UpdateTotals(t *testing.T) {
 	for i, test := range updateTotalsTestList {
 
-		list := buildDoublyLinkedList(test.listData)
+		list := test.listData.BuildDoublyLinkedList()
 		list = list.UpdateTotals(test.reference, test.timeframe)
 
 		if list.head.data != test.expectedHead {
@@ -223,20 +214,20 @@ func compareLists(l1 RequestCountDoublyLinkedList, l2 RequestCountDoublyLinkedLi
 }
 
 type compareListsTest struct {
-	firstListData  []RequestCount //a linked list will be constructed with these values in the same order of the slice
-	secondListData []RequestCount //a linked list will be constructed with these values in the same order of the slice
+	firstListData  requestCountList //a linked list will be constructed with these values in the same order of the slice
+	secondListData requestCountList //a linked list will be constructed with these values in the same order of the slice
 	expected       bool
 }
 
 var compareListsTestList = []compareListsTest{
 	{ // Lists are equal
-		firstListData: []RequestCount{
+		firstListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 		},
-		secondListData: []RequestCount{
+		secondListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
@@ -245,13 +236,13 @@ var compareListsTestList = []compareListsTest{
 		expected: true,
 	},
 	{ // Lists are empty
-		firstListData:  []RequestCount{},
-		secondListData: []RequestCount{},
+		firstListData:  requestCountList{},
+		secondListData: requestCountList{},
 		expected:       true,
 	},
 	{ // First list is empty
-		firstListData: []RequestCount{},
-		secondListData: []RequestCount{
+		firstListData: requestCountList{},
+		secondListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
@@ -260,23 +251,23 @@ var compareListsTestList = []compareListsTest{
 		expected: false,
 	},
 	{ // Second list is empty
-		firstListData: []RequestCount{
+		firstListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 		},
-		secondListData: []RequestCount{},
+		secondListData: requestCountList{},
 		expected:       false,
 	},
 	{ // Lists are different at the beginning
-		firstListData: []RequestCount{
+		firstListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 		},
-		secondListData: []RequestCount{
+		secondListData: requestCountList{
 			{RequestsCount: 111111},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
@@ -285,14 +276,14 @@ var compareListsTestList = []compareListsTest{
 		expected: false,
 	},
 	{ // Lists are different at the middle
-		firstListData: []RequestCount{
+		firstListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 			{RequestsCount: 5},
 		},
-		secondListData: []RequestCount{
+		secondListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 333333},
@@ -302,14 +293,14 @@ var compareListsTestList = []compareListsTest{
 		expected: false,
 	},
 	{ // L1 is longer
-		firstListData: []RequestCount{
+		firstListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 			{RequestsCount: 5},
 		},
-		secondListData: []RequestCount{
+		secondListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
@@ -318,13 +309,13 @@ var compareListsTestList = []compareListsTest{
 		expected: false,
 	},
 	{ // L2 is longer
-		firstListData: []RequestCount{
+		firstListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 		},
-		secondListData: []RequestCount{
+		secondListData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
@@ -337,8 +328,8 @@ var compareListsTestList = []compareListsTest{
 
 func TestCompareLists(t *testing.T) {
 	for i, test := range compareListsTestList {
-		l1 := buildDoublyLinkedList(test.firstListData)
-		l2 := buildDoublyLinkedList(test.secondListData)
+		l1 := test.firstListData.BuildDoublyLinkedList()
+		l2 := test.secondListData.BuildDoublyLinkedList()
 		result := compareLists(l1, l2)
 		if result != test.expected {
 			t.Fatalf("Expected '%v' but got '%v' from test '%v' with data '%v'\n", test.expected, result, i, test)
@@ -347,47 +338,47 @@ func TestCompareLists(t *testing.T) {
 }
 
 type frontDiscardTest struct {
-	listData               []RequestCount //a linked list will be constructed with these values in the same order of the slice
+	listData               requestCountList //a linked list will be constructed with these values in the same order of the slice
 	lastDataToRemove       RequestCount
-	expectedResultListData []RequestCount
+	expectedResultListData requestCountList
 }
 
 var frontDiscardTestList = []frontDiscardTest{
 	{ //Discard first
-		listData: []RequestCount{
+		listData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 		},
 		lastDataToRemove: RequestCount{RequestsCount: 1},
-		expectedResultListData: []RequestCount{
+		expectedResultListData: requestCountList{
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 		},
 	},
 	{ //Discard node before last
-		listData: []RequestCount{
+		listData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 		},
 		lastDataToRemove: RequestCount{RequestsCount: 3},
-		expectedResultListData: []RequestCount{
+		expectedResultListData: requestCountList{
 			{RequestsCount: 4},
 		},
 	},
 	{ //Discard last
-		listData: []RequestCount{
+		listData: requestCountList{
 			{RequestsCount: 1},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
 		},
 		lastDataToRemove:       RequestCount{RequestsCount: 4},
-		expectedResultListData: []RequestCount{},
+		expectedResultListData: requestCountList{},
 	},
 }
 
@@ -416,12 +407,12 @@ func findRequestCountInList(node RequestCount, list RequestCountDoublyLinkedList
 
 func TestRequestCountDoublyLinkedList_FrontDiscardUntil(t *testing.T) {
 	for i, test := range frontDiscardTestList {
-		initialList := buildDoublyLinkedList(test.listData)
+		initialList := test.listData.BuildDoublyLinkedList()
 		lastNodeToDiscard, err := findRequestCountInList(test.lastDataToRemove, initialList)
 		if err != nil {
 			t.Fatal(err)
 		}
-		expectedListAfterDiscard := buildDoublyLinkedList(test.expectedResultListData)
+		expectedListAfterDiscard := test.expectedResultListData.BuildDoublyLinkedList()
 		resultList := initialList.FrontDiscardUntil(lastNodeToDiscard)
 		if !compareLists(expectedListAfterDiscard, resultList) {
 			t.Fatalf("Expected '%v' but got '%v' from test '%v' with data '%v'\n", expectedListAfterDiscard, resultList, i, test)
@@ -430,14 +421,14 @@ func TestRequestCountDoublyLinkedList_FrontDiscardUntil(t *testing.T) {
 }
 
 type totalAccumulatedRequestCountTest struct {
-	listData []RequestCount //a linked list will be constructed with these values in the same order of the slice
+	listData requestCountList //a linked list will be constructed with these values in the same order of the slice
 	expected int
 }
 
 var totalAccumulatedRequestCountTestList = []totalAccumulatedRequestCountTest{
 	{ // Simple test
-		listData: []RequestCount{
-			{RequestsCount: 1, accumulatedRequestCount: 1111},
+		listData: requestCountList{
+			{RequestsCount: 1, AccumulatedRequestCount: 1111},
 			{RequestsCount: 2},
 			{RequestsCount: 3},
 			{RequestsCount: 4},
@@ -445,11 +436,11 @@ var totalAccumulatedRequestCountTestList = []totalAccumulatedRequestCountTest{
 		expected: 1111,
 	},
 	{ // Never mind other values
-		listData: []RequestCount{
-			{RequestsCount: 1, accumulatedRequestCount: 1111},
-			{RequestsCount: 2, accumulatedRequestCount: 2222},
-			{RequestsCount: 3, accumulatedRequestCount: 3333},
-			{RequestsCount: 4, accumulatedRequestCount: 4444},
+		listData: requestCountList{
+			{RequestsCount: 1, AccumulatedRequestCount: 1111},
+			{RequestsCount: 2, AccumulatedRequestCount: 2222},
+			{RequestsCount: 3, AccumulatedRequestCount: 3333},
+			{RequestsCount: 4, AccumulatedRequestCount: 4444},
 		},
 		expected: 1111,
 	},
@@ -457,7 +448,7 @@ var totalAccumulatedRequestCountTestList = []totalAccumulatedRequestCountTest{
 
 func TestRequestCountDoublyLinkedList_TotalAccumulatedRequestCount(t *testing.T) {
 	for i, test := range totalAccumulatedRequestCountTestList {
-		list := buildDoublyLinkedList(test.listData)
+		list := test.listData.BuildDoublyLinkedList()
 		result := list.TotalAccumulatedRequestCount()
 		if result != test.expected {
 			t.Fatalf("Expected '%v' but got '%v' from test '%v' with data '%v'\n", result, test.expected, i, test)

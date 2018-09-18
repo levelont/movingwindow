@@ -135,6 +135,9 @@ func (i indexHandleTest) getTotalRequests() int {
 	return totalRequests
 }
 
+//TODO tests temporarily out-commented to improve turnaround speed.
+//TODO re-enable
+//TODO still, tests are taking 5s. Why? Is logging degrading performance although it is not writing to a proper device?
 var indexHandleTestList = []indexHandleTest{
 	{ //single instant, 1 request, 'infinite' persistenceTimeframe
 		orderList: []order{
@@ -149,20 +152,20 @@ var indexHandleTestList = []indexHandleTest{
 		},
 		persistenceTimeframe: time.Duration(60) * time.Second,
 	},
-	{ //single instant, 1000 requests, 'infinite' persistenceTimeFrame
+	/*{ //single instant, 1000 requests, 'infinite' persistenceTimeFrame
 		orderList: []order{
 			{numRequests: 1000, delay: 0, unit: time.Second, expectedTotal: 1000},
 		},
 		persistenceTimeframe: time.Duration(60) * time.Second,
-	},
-	{ // three consecutive instants, 1s=1000, 2s=1000, 3s=1000, 'infinite' persistenceTimeFrame
+	},*/
+	/*{ // three consecutive instants, 1s=1000, 2s=1000, 3s=1000, 'infinite' persistenceTimeFrame
 		orderList: []order{
 			{numRequests: 1000, delay: 0, unit: time.Second, expectedTotal: 1000},
 			{numRequests: 1000, delay: 1, unit: time.Second, expectedTotal: 2000},
 			{numRequests: 1000, delay: 1, unit: time.Second, expectedTotal: 3000},
 		},
 		persistenceTimeframe: time.Duration(60) * time.Second,
-	},
+	},*/
 	{ // five instants with delays in between, timeframe of a single second
 		orderList: []order{
 			{numRequests: 1, delay: 0, unit: time.Second, expectedTotal: 1},
@@ -173,7 +176,7 @@ var indexHandleTestList = []indexHandleTest{
 		},
 		persistenceTimeframe: time.Duration(1) * time.Second,
 	},
-	{ // five instants with delays in between timeframe of a single second
+	/*{ // five instants with delays in between timeframe of a single second
 		orderList: []order{
 			{numRequests: 1000, delay: 1, unit: time.Second, expectedTotal: 1000},
 			{numRequests: 100, delay: 1, unit: time.Second, expectedTotal: 1100},
@@ -181,7 +184,7 @@ var indexHandleTestList = []indexHandleTest{
 			{numRequests: 1, delay: 1, unit: time.Second, expectedTotal: 11},
 		},
 		persistenceTimeframe: time.Duration(1) * time.Second,
-	},
+	},*/
 }
 
 func TestHandleIndex(t *testing.T) {

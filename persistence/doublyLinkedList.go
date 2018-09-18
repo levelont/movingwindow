@@ -7,11 +7,13 @@ import (
 
 //todo names: see messed up usage @startCommunicationProcessor
 // maybe just count and accumulated?
-//TODO hide accumulatedRequestCount from json encoding
+//TODO hide accumulatedRequestCount from json encoding by defining a custom type at the marshalling code block
+/*Fields need be exported for encoding purposes.
+ */
 type RequestCount struct {
 	Timestamp               time.Time
 	RequestsCount           int
-	accumulatedRequestCount int
+	AccumulatedRequestCount int
 }
 
 func (r RequestCount) Empty() bool {
@@ -19,14 +21,14 @@ func (r RequestCount) Empty() bool {
 }
 
 func (r RequestCount) Dump() string {
-	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}\n", r.Timestamp.String(), r.RequestsCount, r.accumulatedRequestCount)
+	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}\n", r.Timestamp.String(), r.RequestsCount, r.AccumulatedRequestCount)
 }
 
 //TODO test coverage
 //TODO analyze test coverage of entire project
 func (r *RequestCount) Increment() {
 	r.RequestsCount++
-	r.accumulatedRequestCount++
+	r.AccumulatedRequestCount++
 }
 
 type requestCountNode struct {
@@ -48,6 +50,31 @@ func (node requestCountNode) WithinDurationBefore(duration time.Duration, precis
 type RequestCountDoublyLinkedList struct {
 	head *requestCountNode
 	tail *requestCountNode
+}
+
+type requestCountList []RequestCount
+
+// in order to serialize this, i'd have to traverse and serialize each of the nodes
+// only the data is needed. all memory locations are not necessary, so I can work solely with requestCounts
+func (r RequestCountDoublyLinkedList) getNodes() requestCountList {
+	//TODO reasonable capacity? cache it at the doublylinkedList?
+	nodes := make(requestCountList, 0, 100)
+	currentNode := r.head
+	for currentNode != nil {
+		nodes = append(nodes, currentNode.data)
+		currentNode = currentNode.right
+	}
+
+	return nodes
+}
+
+func (values requestCountList) BuildDoublyLinkedList() RequestCountDoublyLinkedList {
+	var list RequestCountDoublyLinkedList
+	for _, value := range values {
+		list = list.AppendToTail(value)
+	}
+
+	return list
 }
 
 /*
@@ -125,7 +152,7 @@ func (list RequestCountDoublyLinkedList) UpdateTotals(reference RequestCount, ti
 		}
 
 		if withinTimeFrame, _ := currentNode.WithinDurationBefore(timeFrame, time.Second, reference); withinTimeFrame {
-			currentNode.data.accumulatedRequestCount = currentNode.data.RequestsCount + currentNode.right.data.accumulatedRequestCount
+			currentNode.data.AccumulatedRequestCount = currentNode.data.RequestsCount + currentNode.right.data.AccumulatedRequestCount
 			currentNode = currentNode.left
 		} else {
 			list = list.FrontDiscardUntil(currentNode)
@@ -141,7 +168,7 @@ func (list RequestCountDoublyLinkedList) UpdateTotals(reference RequestCount, ti
 Assumes that UpdateTotals was called right before.
 */
 func (list RequestCountDoublyLinkedList) TotalAccumulatedRequestCount() int {
-	return list.head.data.accumulatedRequestCount
+	return list.head.data.AccumulatedRequestCount
 }
 
 func (r RequestCount) CompareTimestampWithPrecision(t time.Time, precision time.Duration) bool {

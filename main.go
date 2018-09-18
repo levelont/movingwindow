@@ -22,14 +22,14 @@ const (
 
 //TODO variable names - the type name is also silly
 type communication struct {
-	cache                persistence.Cache
-	persistedObjects     persistence.RequestCountDoublyLinkedList
+	state                persistence.State
 	exchangeTimestamp    chan time.Time
 	exchangeRequestCount chan persistence.Cache
 	exchangePersistence  chan persistence.PersistenceData
 	exchangeAccumulated  chan int
 }
 
+//TODO document purpose of each communication channel
 func NewCommunication() communication {
 	return communication{
 		exchangeTimestamp:    make(chan time.Time),
@@ -146,9 +146,9 @@ func (s *server) startCommunicationProcessor() {
 			if ok {
 				//TODO assignments necessary?
 				//TODO workflow wrapper?
-				com.persistedObjects = com.persistedObjects.AppendToTail(persistenceData.RequestCount)
-				com.persistedObjects = com.persistedObjects.UpdateTotals(persistenceData.Reference, s.persistenceTimeFrame)
-				com.exchangeAccumulated <- com.persistedObjects.TotalAccumulatedRequestCount()
+				com.state.Past = com.state.Past.AppendToTail(persistenceData.RequestCount)
+				com.state.Past = com.state.Past.UpdateTotals(persistenceData.Reference, s.persistenceTimeFrame)
+				com.exchangeAccumulated <- com.state.Past.TotalAccumulatedRequestCount()
 			} else {
 				break
 			}
@@ -163,22 +163,22 @@ func (s *server) startCommunicationProcessor() {
 				s.logger.Printf("COM: received new requestTimestamp: '%v'\n", requestTimestamp.Format(time.RFC3339))
 
 				//TODO lazy initialization with Sync.once
-				if com.cache.Empty() {
-					com.cache.Timestamp = requestTimestamp
-					com.cache.AccumulatedRequestCount = 0
+				if com.state.Present.Empty() {
+					com.state.Present.Timestamp = requestTimestamp
+					com.state.Present.AccumulatedRequestCount = 0
 					s.logger.Print("COM: Initialized cache")
 				}
 
-				if com.cache.CompareTimestampWithPrecision(requestTimestamp, time.Second) {
-					com.cache.Increment()
-					s.logger.Printf("COM: Incremented cached requestTimestamp to '%v'\n", com.cache.RequestsCount)
+				if com.state.Present.CompareTimestampWithPrecision(requestTimestamp, time.Second) {
+					com.state.Present.Increment()
+					s.logger.Printf("COM: Incremented cached requestTimestamp to '%v'\n", com.state.Present.RequestsCount)
 				} else {
 					//timestamps are different.
 					//send current cache to the persistence goroutine
 					//it gives back the total for last 60s
 					//TODO
 
-					persistenceUpdate := persistence.NewPersistenceData(com.cache, requestTimestamp)
+					persistenceUpdate := persistence.NewPersistenceData(com.state.Present, requestTimestamp)
 					s.logger.Printf("COM: Sending persistence Update :'%v'\n", persistenceUpdate)
 
 					s.communication.exchangePersistence <- persistenceUpdate
@@ -186,14 +186,14 @@ func (s *server) startCommunicationProcessor() {
 
 					s.logger.Printf("COM: Received new total accumulate of '%v'\n", totalAccumulated)
 
-					com.cache = persistence.NewCache(requestTimestamp, totalAccumulated)
-					s.logger.Printf("COM: Updated cache to '%v'\n", com.cache)
+					com.state.Present = persistence.NewCache(requestTimestamp, totalAccumulated)
+					s.logger.Printf("COM: Updated cache to '%v'\n", com.state.Present)
 				}
 
 				//there is only one value that needs be returned: the total count.
 				//requestCache is used. Because only its accumulate field is exported,
 				//only it will be marshalled.
-				com.exchangeRequestCount <- com.cache
+				com.exchangeRequestCount <- com.state.Present
 			} else {
 				break
 			}

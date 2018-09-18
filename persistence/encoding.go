@@ -1,36 +1,80 @@
-package main
+package persistence
 
 import (
 	"bytes"
 	"encoding/gob"
-	"log"
+	"io/ioutil"
 )
 
-func encode(requestCounts map[string]int) []byte {
-	b := new(bytes.Buffer)
-
-	e := gob.NewEncoder(b)
-
-	// Encoding the map
-	err := e.Encode(requestCounts)
-	if err != nil {
-		//TODO Logging + error handling
-		log.Fatal(err)
-	}
-
-	return b.Bytes()
+type State struct {
+	Past    RequestCountDoublyLinkedList
+	Present Cache
 }
 
-func decode(buffer []byte) map[string]int {
-	var decodedMap map[string]int
-	d := gob.NewDecoder(bytes.NewBuffer(buffer))
+/*Fields need be exported for encoding purposes
+ */
+type internalState struct {
+	Past    requestCountList
+	Present Cache
+}
 
-	// Decoding the serialized data
-	err := d.Decode(&decodedMap)
+func (s State) encode() ([]byte, error) {
+	internalState := internalState{
+		Past:    s.Past.getNodes(),
+		Present: s.Present,
+	}
+	b := new(bytes.Buffer)
+	e := gob.NewEncoder(b)
+	err := e.Encode(internalState)
 	if err != nil {
-		//TODO Logging + error handling
-		log.Fatal(err)
+		return []byte{}, err
 	}
 
-	return decodedMap
+	return b.Bytes(), nil
+}
+
+func decodeState(buffer []byte) (State, error) {
+	var decodedInternalState internalState
+	d := gob.NewDecoder(bytes.NewBuffer(buffer))
+	err := d.Decode(&decodedInternalState)
+	if err != nil {
+		return State{}, err
+	}
+
+	decodedState := State{
+		Past:    decodedInternalState.Past.BuildDoublyLinkedList(),
+		Present: decodedInternalState.Present,
+	}
+
+	return decodedState, nil
+}
+
+func (s State) WriteToFile(path string) error {
+	//TODO WriteFile gets a 'fileName'. Should that not be an absolute path?
+	bytes, err := s.encode()
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(path, bytes, 0600)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func ReadFromFile(path string) (State, error) {
+	//TODO WriteFile gets a 'fileName'. Should that not be an absolute path?
+	readBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return State{}, err
+	}
+
+	state, err := decodeState(readBytes)
+	if err != nil {
+		return State{}, err
+	}
+
+	return state, nil
 }
