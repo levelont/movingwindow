@@ -74,7 +74,7 @@ func (s *server) readStateFromDisk() {
 }
 
 func (s *server) PersistState() error {
-	s.Logger.Printf("Persisting state to file '%v'.", s.persistenceFile)
+	s.Logger.Printf("Persisting state '%+v' to file '%v'.", s.Communication.state, s.persistenceFile)
 	if err := s.Communication.state.WriteToFile(s.persistenceFile); err != nil {
 		return err
 	}
