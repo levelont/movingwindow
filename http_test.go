@@ -228,7 +228,12 @@ func TestHandleIndex(t *testing.T) {
 	var w *httptest.ResponseRecorder
 	for testIndex, test := range indexHandleTestList {
 		log.Printf("Test '%v' - values: '%v'\n", testIndex, test)
-		srv := NewServer(":5000", test.persistenceTimeframe)
+		env := environment{
+			listenAddress:              ":5000",
+			persistenceFile:            "NOT_SET",
+			parsedPersistenceTimeFrame: test.persistenceTimeframe,
+		}
+		srv := NewServer(env)
 		srv.logger.SetOutput(ioutil.Discard)
 		srv.routes()
 		handler := srv.index(srv.communication)
@@ -392,9 +397,9 @@ func TestHandleIndex(t *testing.T) {
 			for responseIndex := lastNumRequests; responseIndex < lastNumRequests+order.numRequests; responseIndex++ {
 				response := testResponses[responseIndex]
 				expectedTotalForCurrentResponse := responseIndex + 1
-				if expectedTotalForCurrentResponse != response.AccumulatedRequestCount {
+				if expectedTotalForCurrentResponse != response.GlobalCount {
 					t.Errorf("Expected received response '%v' to have a count of '%v' but got '%v' instead. Test; '%v', Values: '%v'\n",
-						response, expectedTotalForCurrentResponse, response.AccumulatedRequestCount, testIndex, test)
+						response, expectedTotalForCurrentResponse, response.GlobalCount, testIndex, test)
 				}
 			}
 			lastNumRequests = order.numRequests

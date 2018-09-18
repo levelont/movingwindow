@@ -21,8 +21,8 @@ var encodeStateTestList = []encodeStateTest{
 			{Timestamp: time.Date(4444, 44, 44, 44, 44, 44, 444444444, time.UTC), RequestsCount: 4, AccumulatedRequestCount: 44},
 		},
 		statePresent: Cache{
-			RequestCount:            RequestCount{Timestamp: time.Date(5555, 55, 55, 55, 55, 55, 555555555, time.UTC), RequestsCount: 5, AccumulatedRequestCount: 55},
-			AccumulatedRequestCount: 6666,
+			RequestCount: RequestCount{Timestamp: time.Date(5555, 55, 55, 55, 55, 55, 555555555, time.UTC), RequestsCount: 5, AccumulatedRequestCount: 55},
+			GlobalCount:  6666,
 		},
 	},
 	{ // no values

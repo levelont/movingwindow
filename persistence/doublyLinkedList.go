@@ -20,6 +20,7 @@ func (r RequestCount) Empty() bool {
 	return r.Timestamp.IsZero()
 }
 
+//TODO test function?
 func (r RequestCount) Dump() string {
 	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}\n", r.Timestamp.String(), r.RequestsCount, r.AccumulatedRequestCount)
 }

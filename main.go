@@ -44,10 +44,34 @@ type server struct {
 	logger               *log.Logger
 	communication        communication
 	persistenceTimeFrame time.Duration
+	persistenceFile      string
 	http.Server
 }
 
-func NewServer(listenAddress string, persistenceTimeFrame time.Duration) *server {
+type environment struct {
+	listenAddress              string
+	persistenceFile            string
+	persistenceTimeFrame       string
+	parsedPersistenceTimeFrame time.Duration
+}
+
+func parseEnvironment() environment {
+	var env environment
+	flag.StringVar(&env.listenAddress, "listen-address", ":5000", "Server listen address")
+	flag.StringVar(&env.persistenceTimeFrame, "persistence-time-interval", "60s", "Time frame for which request counts will be calculated")
+	flag.StringVar(&env.persistenceFile, "persistence-file", "persistence.bin", "File to which state will be persisted upon server termination")
+	flag.Parse()
+
+	var err error
+	env.parsedPersistenceTimeFrame, err = time.ParseDuration(env.persistenceTimeFrame)
+	if err != nil {
+		panic(err) //OK: need env variable to be parsable.
+	}
+
+	return env
+}
+
+func NewServer(env environment) *server {
 	router := http.NewServeMux()
 	logger := log.New(os.Stdout, "http: ", log.LstdFlags)
 	errorLogger := log.New(os.Stderr, "http: ", log.LstdFlags)
@@ -56,9 +80,10 @@ func NewServer(listenAddress string, persistenceTimeFrame time.Duration) *server
 		router:               router,
 		logger:               logger,
 		communication:        communication,
-		persistenceTimeFrame: persistenceTimeFrame,
+		persistenceTimeFrame: env.parsedPersistenceTimeFrame,
+		persistenceFile:      env.persistenceFile,
 		Server: http.Server{
-			Addr:         listenAddress,
+			Addr:         env.listenAddress,
 			Handler:      tracing(nextRequestID)(logging(logger)(router)),
 			ErrorLog:     errorLogger,
 			ReadTimeout:  5 * time.Second,
@@ -79,20 +104,7 @@ func nextRequestID() string {
 }
 
 func main() {
-	var listenAddress string
-	//todo validate
-	//todo test different timeframes
-	var persistenceTimeFrame string
-	flag.StringVar(&listenAddress, "listen-address", ":5000", "server listen address")
-	flag.StringVar(&persistenceTimeFrame, "persistence-time-interval", "60s", "time frame for which connection counts will be calculated")
-	flag.Parse()
-
-	parsedTimeframe, err := time.ParseDuration(persistenceTimeFrame)
-	if err != nil {
-		panic(err) //OK: need env variable to be parsable.
-	}
-
-	server := NewServer(listenAddress, parsedTimeframe)
+	server := NewServer(parseEnvironment())
 	server.logger.Println("Server is starting...")
 	server.routes()
 
@@ -101,9 +113,14 @@ func main() {
 	signal.Notify(quit, os.Interrupt)
 
 	go func() {
-		<-quit
-		server.logger.Println("Server is shutting down...")
+		signal := <-quit
+		server.logger.Printf("Server received signal '%v'. Saving state to file '%v'\n", signal, server.persistenceFile)
 
+		if err := server.communication.state.WriteToFile(server.persistenceFile); err != nil {
+			server.logger.Fatalf("Could not save state to disk: %v\n", err)
+		}
+
+		server.logger.Println("Shutting down...")
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
@@ -117,7 +134,7 @@ func main() {
 
 	server.logger.Println("Server is ready to handle requests at", server.Addr)
 	if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		server.logger.Fatalf("Could not listen on %s: %v\n", listenAddress, err)
+		server.logger.Fatalf("Could not listen on %s: %v\n", server.Addr, err)
 	}
 
 	<-done
@@ -144,7 +161,6 @@ func (s *server) startCommunicationProcessor() {
 		for {
 			persistenceData, ok := <-com.exchangePersistence
 			if ok {
-				//TODO assignments necessary?
 				//TODO workflow wrapper?
 				com.state.Past = com.state.Past.AppendToTail(persistenceData.RequestCount)
 				com.state.Past = com.state.Past.UpdateTotals(persistenceData.Reference, s.persistenceTimeFrame)
@@ -162,10 +178,8 @@ func (s *server) startCommunicationProcessor() {
 			if ok {
 				s.logger.Printf("COM: received new requestTimestamp: '%v'\n", requestTimestamp.Format(time.RFC3339))
 
-				//TODO lazy initialization with Sync.once
 				if com.state.Present.Empty() {
 					com.state.Present.Timestamp = requestTimestamp
-					com.state.Present.AccumulatedRequestCount = 0
 					s.logger.Print("COM: Initialized cache")
 				}
 

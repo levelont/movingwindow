@@ -11,6 +11,10 @@ type State struct {
 	Present Cache
 }
 
+func (s State) RequestCount() int {
+	return s.Past.TotalAccumulatedRequestCount() + s.Present.GlobalCount
+}
+
 /*Fields need be exported for encoding purposes
  */
 type internalState struct {
