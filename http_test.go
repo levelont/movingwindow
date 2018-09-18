@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"simplesurance/api"
 	"simplesurance/persistence"
 	"sort"
 	"testing"
@@ -16,15 +17,16 @@ import (
 
 type requestList []persistence.Cache
 
-/*The 'duration' value is used to perform timestamp comparisons.
- */
+/* Re-usage of the api.Response type to unmarshall data received from the server
+The 'duration' value is used to perform timestamp comparisons.
+*/
 type indexResponse struct {
-	response
+	api.Response
 	precision time.Duration
 }
 
 func (ir indexResponse) CompareTimestampWithPrecision(t time.Time, precision time.Duration) bool {
-	return ir.Timestamp.Truncate(precision) == t.Truncate(precision)
+	return ir.Timestamp().Truncate(precision) == t.Truncate(precision)
 }
 
 type indexResponseList []indexResponse
@@ -36,10 +38,10 @@ func (s indexResponseList) Swap(i, j int) {
 	s[i], s[j] = s[j], s[i]
 }
 func (s indexResponseList) Less(i, j int) bool {
-	if s[i].CompareTimestampWithPrecision(s[j].Timestamp, time.Second) {
+	if s[i].CompareTimestampWithPrecision(s[j].Timestamp(), time.Second) {
 		return s[i].RequestCount < s[j].RequestCount
 	} else {
-		return s[i].Timestamp.Before(s[j].Timestamp)
+		return s[i].Timestamp().Before(s[j].Timestamp())
 	}
 }
 
@@ -51,61 +53,60 @@ type requestCountListSortingTest struct {
 var requestCountListSortingTestList = []requestCountListSortingTest{
 	{ // Basic test
 		unsorted: indexResponseList{
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), 0)},
 		},
 		sorted: indexResponseList{
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC), 0)},
 		},
 	},
-
 	{ // Timestamp collisions
 		unsorted: indexResponseList{
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 3}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 2}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 1}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 3)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 2)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 1)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), 0)},
 		},
 		sorted: indexResponseList{
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 1}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 2}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 3}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 1)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 2)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 3)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC), 0)},
 		},
 	},
 	{ // Timestamp and request count collisions
 		unsorted: indexResponseList{
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 3}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 2}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 2}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 1}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 3)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 2)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 2)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 1)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), 0)},
 		},
 		sorted: indexResponseList{
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 1}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 2}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 2}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), RequestCount: 3}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC)}},
-			indexResponse{response: response{Timestamp: time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC)}},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 1)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 2)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 2)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 03, 0, time.UTC), 3)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 04, 0, time.UTC), 0)},
+			indexResponse{Response: api.NewResponse(time.Date(2006, 01, 02, 19, 00, 05, 0, time.UTC), 0)},
 		},
 	},
 }
@@ -252,14 +253,14 @@ func TestHandleIndex(t *testing.T) {
 
 	for testIndex, test := range indexHandleTestList {
 		//a new server is created for each test so that each of them starts with a clean slate.
-		srv := NewServer(environment{
-			listenAddress:              ":5000",
-			persistenceFile:            "NOT_SET",
-			parsedPersistenceTimeFrame: test.persistenceTimeframe,
+		srv := api.NewServer(api.Environment{
+			ListenAddress:              ":5000",
+			PersistenceFile:            "NOT_SET",
+			ParsedPersistenceTimeFrame: test.persistenceTimeframe,
 		})
-		srv.logger.SetOutput(ioutil.Discard)
-		srv.routes()
-		handler := srv.index(srv.communication)
+		srv.Logger.SetOutput(ioutil.Discard)
+		srv.Routes()
+		handler := srv.Index(srv.Communication)
 
 		for orderIndex, order := range test.orderList {
 			time.Sleep(time.Duration(order.delay) * order.unit)

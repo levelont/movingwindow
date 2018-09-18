@@ -54,7 +54,6 @@ func decodeState(buffer []byte) (State, error) {
 }
 
 func (s State) WriteToFile(path string) error {
-	//TODO WriteFile gets a 'fileName'. Should that not be an absolute path?
 	bytes, err := s.encode()
 	if err != nil {
 		return err
@@ -69,7 +68,6 @@ func (s State) WriteToFile(path string) error {
 }
 
 func ReadFromFile(path string) (State, error) {
-	//TODO WriteFile gets a 'fileName'. Should that not be an absolute path?
 	readBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		return State{}, err
