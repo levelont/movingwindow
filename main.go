@@ -17,8 +17,8 @@ func main() {
 	done := make(chan bool)
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
+	signal.Notify(quit, os.Kill)
 
-	//TODO exit code 1 is not calling this!
 	go func() {
 		signal := <-quit
 		server.Logger.Printf("Server received signal '%v'.", signal)
