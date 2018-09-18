@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -184,6 +185,7 @@ var indexHandleTestList = []indexHandleTest{
 }
 
 func TestHandleIndex(t *testing.T) {
+	log.SetOutput(ioutil.Discard)
 	req, err := http.NewRequest("GET", "/", nil)
 	if err != nil {
 		t.Fatal("Error creating a new request")
@@ -224,7 +226,7 @@ func TestHandleIndex(t *testing.T) {
 	for testIndex, test := range indexHandleTestList {
 		log.Printf("Test '%v' - values: '%v'\n", testIndex, test)
 		srv := NewServer(":5000", test.persistenceTimeframe)
-		//srv.logger.SetOutput(ioutil.Discard)
+		srv.logger.SetOutput(ioutil.Discard)
 		srv.routes()
 		handler := srv.index(srv.communication)
 		responses = append(responses, make(responseList, 0, test.getTotalRequests()))
