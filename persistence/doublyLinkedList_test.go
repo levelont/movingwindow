@@ -15,7 +15,7 @@ func dumpList(list RequestCountDoublyLinkedList) string {
 		if currentNode == nil {
 			break
 		}
-		result.WriteString(strconv.Itoa(currentNode.data.RequestsCount))
+		result.WriteString(strconv.Itoa(currentNode.data.Count))
 		currentNode = currentNode.right
 	}
 
@@ -29,7 +29,7 @@ func dumpListBackwards(list RequestCountDoublyLinkedList) string {
 		if currentNode == nil {
 			break
 		}
-		result.WriteString(strconv.Itoa(currentNode.data.RequestsCount))
+		result.WriteString(strconv.Itoa(currentNode.data.Count))
 		currentNode = currentNode.left
 	}
 
@@ -44,26 +44,26 @@ type appendToTailTest struct {
 
 var appendToTailTestList = []appendToTailTest{
 	{listData: requestCountList{
-		{RequestsCount: 1},
+		{Count: 1},
 	},
 		expectedDump:          "1",
 		expectedDumpBackwards: "1",
 	},
 
 	{listData: requestCountList{
-		{RequestsCount: 1},
-		{RequestsCount: 2},
+		{Count: 1},
+		{Count: 2},
 	},
 		expectedDump:          "12",
 		expectedDumpBackwards: "21",
 	},
 
 	{listData: requestCountList{
-		{RequestsCount: 1},
-		{RequestsCount: 2},
-		{RequestsCount: 3},
-		{RequestsCount: 4},
-		{RequestsCount: 5},
+		{Count: 1},
+		{Count: 2},
+		{Count: 3},
+		{Count: 4},
+		{Count: 5},
 	},
 		expectedDump:          "12345",
 		expectedDumpBackwards: "54321",
@@ -135,46 +135,45 @@ type updateTotalsTest struct {
 var updateTotalsTestList = []updateTotalsTest{
 	{ // Head outside range
 		listData: requestCountList{
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), RequestsCount: 1000},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 1},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), RequestsCount: 1},
-			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 1},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), Count: 1000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), Count: 1},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), Count: 1},
+			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), Count: 1, Accumulated: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 01, 02, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
-		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 3},
+		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), Count: 1, Accumulated: 3},
 	},
 	{ // Head + 3 outside range
 		listData: requestCountList{
-			{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), RequestsCount: 1000},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 00, 0, time.UTC), RequestsCount: 1000},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), RequestsCount: 1000},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 3},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), RequestsCount: 2},
-			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 1},
+			{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), Count: 1000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 00, 0, time.UTC), Count: 1000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), Count: 1000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), Count: 3},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), Count: 2},
+			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), Count: 1, Accumulated: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 01, 02, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
-		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 3, AccumulatedRequestCount: 6},
+		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), Count: 3, Accumulated: 6},
 	},
 	{ // Big values, all inside range
 		listData: requestCountList{
-			{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), RequestsCount: 100000},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 00, 0, time.UTC), RequestsCount: 10000},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), RequestsCount: 1000},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), RequestsCount: 100},
-			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), RequestsCount: 10},
-			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 1},
+			{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), Count: 100000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 00, 0, time.UTC), Count: 10000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), Count: 1000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), Count: 100},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), Count: 10},
+			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), Count: 1, Accumulated: 1},
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 59, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
-		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), RequestsCount: 100000, AccumulatedRequestCount: 111111},
+		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), Count: 100000, Accumulated: 111111},
 	},
 }
 
 func TestRequestCountDoublyLinkedList_UpdateTotals(t *testing.T) {
 	for i, test := range updateTotalsTestList {
-
 		list := test.listData.BuildDoublyLinkedList()
 		list = list.UpdateTotals(test.reference, test.timeframe)
 
@@ -222,16 +221,16 @@ type compareListsTest struct {
 var compareListsTestList = []compareListsTest{
 	{ // Lists are equal
 		firstListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		secondListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		expected: true,
 	},
@@ -243,84 +242,84 @@ var compareListsTestList = []compareListsTest{
 	{ // First list is empty
 		firstListData: requestCountList{},
 		secondListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		expected: false,
 	},
 	{ // Second list is empty
 		firstListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		secondListData: requestCountList{},
 		expected:       false,
 	},
 	{ // Lists are different at the beginning
 		firstListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		secondListData: requestCountList{
-			{RequestsCount: 111111},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 111111},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		expected: false,
 	},
 	{ // Lists are different at the middle
 		firstListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
-			{RequestsCount: 5},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
+			{Count: 5},
 		},
 		secondListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 333333},
-			{RequestsCount: 4},
-			{RequestsCount: 5},
+			{Count: 1},
+			{Count: 2},
+			{Count: 333333},
+			{Count: 4},
+			{Count: 5},
 		},
 		expected: false,
 	},
 	{ // L1 is longer
 		firstListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
-			{RequestsCount: 5},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
+			{Count: 5},
 		},
 		secondListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		expected: false,
 	},
 	{ // L2 is longer
 		firstListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		secondListData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
-			{RequestsCount: 5},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
+			{Count: 5},
 		},
 		expected: false,
 	},
@@ -346,38 +345,38 @@ type frontDiscardTest struct {
 var frontDiscardTestList = []frontDiscardTest{
 	{ //Discard first
 		listData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
-		lastDataToRemove: RequestCount{RequestsCount: 1},
+		lastDataToRemove: RequestCount{Count: 1},
 		expectedResultListData: requestCountList{
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 	},
 	{ //Discard node before last
 		listData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
-		lastDataToRemove: RequestCount{RequestsCount: 3},
+		lastDataToRemove: RequestCount{Count: 3},
 		expectedResultListData: requestCountList{
-			{RequestsCount: 4},
+			{Count: 4},
 		},
 	},
 	{ //Discard last
 		listData: requestCountList{
-			{RequestsCount: 1},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
-		lastDataToRemove:       RequestCount{RequestsCount: 4},
+		lastDataToRemove:       RequestCount{Count: 4},
 		expectedResultListData: requestCountList{},
 	},
 }
@@ -428,19 +427,19 @@ type totalAccumulatedRequestCountTest struct {
 var totalAccumulatedRequestCountTestList = []totalAccumulatedRequestCountTest{
 	{ // Simple test
 		listData: requestCountList{
-			{RequestsCount: 1, AccumulatedRequestCount: 1111},
-			{RequestsCount: 2},
-			{RequestsCount: 3},
-			{RequestsCount: 4},
+			{Count: 1, Accumulated: 1111},
+			{Count: 2},
+			{Count: 3},
+			{Count: 4},
 		},
 		expected: 1111,
 	},
 	{ // Never mind other values
 		listData: requestCountList{
-			{RequestsCount: 1, AccumulatedRequestCount: 1111},
-			{RequestsCount: 2, AccumulatedRequestCount: 2222},
-			{RequestsCount: 3, AccumulatedRequestCount: 3333},
-			{RequestsCount: 4, AccumulatedRequestCount: 4444},
+			{Count: 1, Accumulated: 1111},
+			{Count: 2, Accumulated: 2222},
+			{Count: 3, Accumulated: 3333},
+			{Count: 4, Accumulated: 4444},
 		},
 		expected: 1111,
 	},

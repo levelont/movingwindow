@@ -15,14 +15,14 @@ type encodeStateTest struct {
 var encodeStateTestList = []encodeStateTest{
 	{ // varied values
 		statePastData: requestCountList{
-			{Timestamp: time.Date(1111, 11, 11, 11, 11, 11, 111111111, time.UTC), RequestsCount: 1, AccumulatedRequestCount: 11},
-			{Timestamp: time.Date(2222, 22, 22, 22, 22, 22, 222222222, time.UTC), RequestsCount: 2, AccumulatedRequestCount: 22},
-			{Timestamp: time.Date(3333, 33, 33, 33, 33, 33, 333333333, time.UTC), RequestsCount: 3, AccumulatedRequestCount: 33},
-			{Timestamp: time.Date(4444, 44, 44, 44, 44, 44, 444444444, time.UTC), RequestsCount: 4, AccumulatedRequestCount: 44},
+			{Timestamp: time.Date(1111, 11, 11, 11, 11, 11, 111111111, time.UTC), Count: 1, Accumulated: 11},
+			{Timestamp: time.Date(2222, 22, 22, 22, 22, 22, 222222222, time.UTC), Count: 2, Accumulated: 22},
+			{Timestamp: time.Date(3333, 33, 33, 33, 33, 33, 333333333, time.UTC), Count: 3, Accumulated: 33},
+			{Timestamp: time.Date(4444, 44, 44, 44, 44, 44, 444444444, time.UTC), Count: 4, Accumulated: 44},
 		},
 		statePresent: Cache{
-			RequestCount: RequestCount{Timestamp: time.Date(5555, 55, 55, 55, 55, 55, 555555555, time.UTC), RequestsCount: 5, AccumulatedRequestCount: 55},
-			GlobalCount:  6666,
+			RequestCount:                 RequestCount{Timestamp: time.Date(5555, 55, 55, 55, 55, 55, 555555555, time.UTC), Count: 5, Accumulated: 55},
+			TotalRequestsWithinTimeframe: 6666,
 		},
 	},
 	{ // no values

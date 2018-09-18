@@ -12,7 +12,7 @@ type State struct {
 }
 
 func (s State) RequestCount() int {
-	return s.Past.TotalAccumulatedRequestCount() + s.Present.GlobalCount
+	return s.Past.TotalAccumulatedRequestCount() + s.Present.TotalRequestsWithinTimeframe
 }
 
 /*Fields need be exported for encoding purposes

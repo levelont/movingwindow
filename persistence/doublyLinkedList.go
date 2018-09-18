@@ -2,18 +2,21 @@ package persistence
 
 import (
 	"fmt"
+	"log"
+	"strings"
 	"time"
 )
 
-//todo names: see messed up usage @startCommunicationProcessor
-// maybe just count and accumulated?
-//TODO hide accumulatedRequestCount from json encoding by defining a custom type at the marshalling code block
-/*Fields need be exported for encoding purposes.
- */
+/*Number of requests associated to the specific point in time indicated by 'Timestamp'.
+'Count' accumulates the number of received requests that came at the same time, according to the precision of the
+algorithm. When calculating totals from a given reference, 'Accumulated' sums the number of requests received from the
+timestamp of the reference until 'Timestamp'
+Fields need be exported for encoding purposes.
+*/
 type RequestCount struct {
-	Timestamp               time.Time
-	RequestsCount           int
-	AccumulatedRequestCount int
+	Timestamp   time.Time
+	Count       int
+	Accumulated int
 }
 
 func (r RequestCount) Empty() bool {
@@ -22,14 +25,14 @@ func (r RequestCount) Empty() bool {
 
 //TODO test function?
 func (r RequestCount) Dump() string {
-	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}\n", r.Timestamp.String(), r.RequestsCount, r.AccumulatedRequestCount)
+	return fmt.Sprintf("{timestamp:%v, requestsCount:%v, accumulatedRequestCount:%v}", r.Timestamp.String(), r.Count, r.Accumulated)
 }
 
 //TODO test coverage
 //TODO analyze test coverage of entire project
 func (r *RequestCount) Increment() {
-	r.RequestsCount++
-	r.AccumulatedRequestCount++
+	r.Count++
+	r.Accumulated++
 }
 
 type requestCountNode struct {
@@ -67,6 +70,14 @@ func (r RequestCountDoublyLinkedList) getNodes() requestCountList {
 	}
 
 	return nodes
+}
+
+func (r RequestCountDoublyLinkedList) dump() string {
+	var b strings.Builder
+	for _, node := range r.getNodes() {
+		b.WriteString(node.Dump())
+	}
+	return b.String()
 }
 
 func (values requestCountList) BuildDoublyLinkedList() RequestCountDoublyLinkedList {
@@ -112,12 +123,10 @@ func (list RequestCountDoublyLinkedList) FrontDiscardUntil(lastNodeToDiscard *re
 		list.tail = nil
 	} else {
 		list.head = lastNodeToDiscard.right
+		list.head.left = nil
 	}
-	for {
-		if currentNode == nil {
-			break
-		}
 
+	for currentNode != nil {
 		atLastNode := false
 		if currentNode == lastNodeToDiscard {
 			atLastNode = true
@@ -137,8 +146,8 @@ func (list RequestCountDoublyLinkedList) FrontDiscardUntil(lastNodeToDiscard *re
 }
 
 /*
-Backward-traverses the list starting from the node left to the tail. Checks that each node is within the provided
-timeframe in seconds before the reference.
+Backward-traverses the list starting from the tail. Checks that each node is within the provided timeframe in seconds
+before the reference.
 Nodes with timestamps in the time frame will get their accumulatedRequestCount value updated to the sum of their
 requestCount and the accumulated of the node right to them.
 As such, the total of accumulated requests received between the reference and the previous 60 seconds will be the
@@ -146,17 +155,24 @@ accumulatedRequestCount value of the head of the list.
 Nodes outside of the time frame will be discarded from the list.
 */
 func (list RequestCountDoublyLinkedList) UpdateTotals(reference RequestCount, timeFrame time.Duration) RequestCountDoublyLinkedList {
-	currentNode := list.tail.left
-	for {
-		if currentNode == nil {
-			break
-		}
-
+	currentNode := list.tail
+	log.Printf("UPDATETOTALS: Updating totals with reference '%v' and accepted timeframe '%v'\n", reference, timeFrame)
+	log.Printf("UPDATETOTALS: List state '%v'\n", list.dump())
+	for currentNode != nil {
+		log.Printf("UPDATETOTALS: At current node with data '%v'\n", currentNode.data)
 		if withinTimeFrame, _ := currentNode.WithinDurationBefore(timeFrame, time.Second, reference); withinTimeFrame {
-			currentNode.data.AccumulatedRequestCount = currentNode.data.RequestsCount + currentNode.right.data.AccumulatedRequestCount
+			if currentNode.right != nil {
+				currentNode.data.Accumulated = currentNode.data.Count + currentNode.right.data.Accumulated
+			} else {
+				currentNode.data.Accumulated = currentNode.data.Count
+			}
+			log.Printf("UPDATETOTALS: Current node is within the accepted timeframe. It's data was updated to: '%v'\n", currentNode.data)
 			currentNode = currentNode.left
 		} else {
+			log.Println("UPDATETOTALS: Current node is NOT within the accepted timeframe. Nodes wil be discarded from list.")
+			log.Printf("UPDATETOTALS: List state '%v'\n", list.dump())
 			list = list.FrontDiscardUntil(currentNode)
+			log.Printf("UPDATETOTALS: List is now '%+v'\n", list.dump())
 			break
 
 		}
@@ -169,7 +185,11 @@ func (list RequestCountDoublyLinkedList) UpdateTotals(reference RequestCount, ti
 Assumes that UpdateTotals was called right before.
 */
 func (list RequestCountDoublyLinkedList) TotalAccumulatedRequestCount() int {
-	return list.head.data.AccumulatedRequestCount
+	if list.head != nil {
+		return list.head.data.Accumulated
+	} else {
+		return 0
+	}
 }
 
 func (r RequestCount) CompareTimestampWithPrecision(t time.Time, precision time.Duration) bool {

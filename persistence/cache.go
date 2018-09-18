@@ -8,11 +8,11 @@ import (
 - all incoming requests for the current timestamp and within the precision of the algorithm - currently hard-coded to
   one second. This is done with the fields of the RequestCount structure.
 - the total accumulated requests within the persistence timeframe - configurable via the environment variable.
-  This is done with the additional 'GlobalCount' field.
+  This is done with the additional 'TotalRequestsWithinTimeframe' field.
 */
 type Cache struct {
 	RequestCount
-	GlobalCount int
+	TotalRequestsWithinTimeframe int
 }
 
 /* A new cache will be created when a new request comes in with a timestamp that differs by at least one unit of the
@@ -23,14 +23,14 @@ func NewCache(timestamp time.Time, totalAccumulated int) Cache {
 	requestCount := RequestCount{Timestamp: timestamp}
 	requestCount.Increment()
 	return Cache{
-		RequestCount: requestCount,
-		GlobalCount:  totalAccumulated + 1,
+		RequestCount:                 requestCount,
+		TotalRequestsWithinTimeframe: totalAccumulated + 1,
 	}
 }
 
-/* Counters for the current timestamp and the global ammount of requests are handled independently of each other
+/* Counters for the current timestamp and the global amount of requests are handled independently of each other
  */
 func (c *Cache) Increment() {
 	c.RequestCount.Increment()
-	c.GlobalCount++
+	c.TotalRequestsWithinTimeframe++
 }

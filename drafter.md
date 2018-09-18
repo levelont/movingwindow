@@ -124,9 +124,10 @@ detectInterrupt()
 - [ ] logging with different components and visibilities
 - [X] response writer
 - [ ] high availability 
-    - [ ] identify serialization points
-    - [ ] write state to file
-    - [ ] read state from file
+    - [X] identify serialization points
+    - [X] write state to file
+    - [X] read state from file
+    - [ ] tests
 - [INVALID] concurrency concerns
     - [INVALID] locked write access to cache?
     - [INVALID] locked write access to doublyLinkedList?

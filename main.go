@@ -112,6 +112,7 @@ func main() {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, os.Interrupt)
 
+	//TODO exit code 1 is not calling this!
 	go func() {
 		signal := <-quit
 		server.logger.Printf("Server received signal '%v'. Saving state to file '%v'\n", signal, server.persistenceFile)
@@ -153,6 +154,19 @@ func (r ResponseError) ToJSON() string {
 	return string(encodedError)
 }
 
+func (s *server) readStateFromDisk() {
+	if _, err := os.Open(s.persistenceFile); err != nil {
+		s.logger.Printf("No state file could be found under '%v': %v. Will work on a clean slate.\n", s.persistenceFile, err)
+	} else {
+		s.logger.Printf("Reading last state from file '%v'...\n", s.persistenceFile)
+		s.communication.state, err = persistence.ReadFromFile(s.persistenceFile)
+		if err != nil {
+			s.logger.Printf("Could not read state from file '%v': %v\n", s.persistenceFile, err)
+		}
+		s.logger.Printf("State restored. Current request count: '%v'\n", s.communication.state.Present.TotalRequestsWithinTimeframe)
+	}
+}
+
 func (s *server) startCommunicationProcessor() {
 	s.logger.Print("Starting communication processor...")
 
@@ -185,13 +199,8 @@ func (s *server) startCommunicationProcessor() {
 
 				if com.state.Present.CompareTimestampWithPrecision(requestTimestamp, time.Second) {
 					com.state.Present.Increment()
-					s.logger.Printf("COM: Incremented cached requestTimestamp to '%v'\n", com.state.Present.RequestsCount)
+					s.logger.Printf("COM: Incremented cached requestCount to '%v'\n", com.state.Present.Count)
 				} else {
-					//timestamps are different.
-					//send current cache to the persistence goroutine
-					//it gives back the total for last 60s
-					//TODO
-
 					persistenceUpdate := persistence.NewPersistenceData(com.state.Present, requestTimestamp)
 					s.logger.Printf("COM: Sending persistence Update :'%v'\n", persistenceUpdate)
 
@@ -204,9 +213,6 @@ func (s *server) startCommunicationProcessor() {
 					s.logger.Printf("COM: Updated cache to '%v'\n", com.state.Present)
 				}
 
-				//there is only one value that needs be returned: the total count.
-				//requestCache is used. Because only its accumulate field is exported,
-				//only it will be marshalled.
 				com.exchangeRequestCount <- com.state.Present
 			} else {
 				break
@@ -216,12 +222,29 @@ func (s *server) startCommunicationProcessor() {
 	s.logger.Print("Communication processor up and running")
 }
 
+func (s *server) initialize() {
+	s.logger.Print("Initialising server with following parameters:")
+	s.logger.Printf("Persistence Timeframe: '%v'\n", s.persistenceTimeFrame)
+	s.logger.Printf("Persistence File: '%v'\n", s.persistenceFile)
+	s.readStateFromDisk()
+	s.startCommunicationProcessor()
+}
+
+/*
+Received value from the exchangeRequestCount will be wrapped in a 'response' type to hide information that should
+not make it to the client. Information hiding is the main purpose of this struct.
+*/
+type response struct {
+	Timestamp    time.Time `json:"timestamp"`
+	RequestCount int       `json:"requestCount"`
+}
+
+/*Delaying init until the handler is actually called via sync.Once saves on http server boot up time.
+ */
 func (s *server) index(com communication) http.HandlerFunc {
-	var (
-		init sync.Once
-	)
+	var init sync.Once
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		init.Do(s.startCommunicationProcessor)
+		init.Do(s.initialize)
 
 		if r.URL.Path != "/" {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
@@ -236,7 +259,11 @@ func (s *server) index(com communication) http.HandlerFunc {
 		totalRequestsSoFar := <-com.exchangeRequestCount
 		s.logger.Printf("Received cache from communication processor: '%v'\n", totalRequestsSoFar)
 
-		encodedCache, err := json.Marshal(totalRequestsSoFar)
+		response := response{
+			Timestamp:    totalRequestsSoFar.Timestamp,
+			RequestCount: totalRequestsSoFar.TotalRequestsWithinTimeframe,
+		}
+		encodedCache, err := json.Marshal(response)
 		if err != nil {
 			w.Header().Set("Content-Type", "application/json; charset=utf-8")
 			w.WriteHeader(http.StatusInternalServerError)
