@@ -20,65 +20,21 @@ const (
 	requestIDKey key = 0
 )
 
-//of course that currentRequestCount has an additional field that could be used for the global accumulatedRequestCount
-// however, that would be mixing up different concerns: the persistence.RequestCount.accumulatedRequestCount field is meant for
-//internal use of the doublylinkedlist only, so that it can calculate the current accumulated values for the relevant time frame
-// and therefore not exported.
-//thus, a specific counter is added to the request cache.
-//TODO names should be used for this differentiation.
-type cache struct {
-	persistence.RequestCount
-	AccumulatedRequestCount int
-}
-
-//TODO test
-//TODO DOC why the increments?
-func NewCache(timestamp time.Time, totalAccumulated int) cache {
-	requestCount := persistence.RequestCount{Timestamp: timestamp}
-	requestCount.Increment()
-	return cache{
-		RequestCount:            requestCount,
-		AccumulatedRequestCount: totalAccumulated + 1,
-	}
-}
-
-//TODO tests
-func (c *cache) Increment() {
-	c.RequestCount.Increment()
-	c.AccumulatedRequestCount++
-}
-
-//TODO name
-//this is the information that the persistence processor requires: a requestCount and a reference timestamp
-type persistenceData struct {
-	requestCount persistence.RequestCount
-	reference    persistence.RequestCount
-}
-
-func NewPersistenceData(cache cache, timestamp time.Time) persistenceData {
-	return persistenceData{
-		requestCount: cache.RequestCount,
-		reference: persistence.RequestCount{
-			Timestamp: timestamp,
-		},
-	}
-}
-
 //TODO variable names - the type name is also silly
 type communication struct {
-	cache                cache
+	cache                persistence.Cache
 	persistedObjects     persistence.RequestCountDoublyLinkedList
 	exchangeTimestamp    chan time.Time
-	exchangeRequestCount chan cache
-	exchangePersistence  chan persistenceData
+	exchangeRequestCount chan persistence.Cache
+	exchangePersistence  chan persistence.PersistenceData
 	exchangeAccumulated  chan int
 }
 
 func NewCommunication() communication {
 	return communication{
 		exchangeTimestamp:    make(chan time.Time),
-		exchangeRequestCount: make(chan cache),
-		exchangePersistence:  make(chan persistenceData),
+		exchangeRequestCount: make(chan persistence.Cache),
+		exchangePersistence:  make(chan persistence.PersistenceData),
 		exchangeAccumulated:  make(chan int),
 	}
 }
@@ -190,8 +146,8 @@ func (s *server) startCommunicationProcessor() {
 			if ok {
 				//TODO assignments necessary?
 				//TODO workflow wrapper?
-				com.persistedObjects = com.persistedObjects.AppendToTail(persistenceData.requestCount)
-				com.persistedObjects = com.persistedObjects.UpdateTotals(persistenceData.reference, s.persistenceTimeFrame)
+				com.persistedObjects = com.persistedObjects.AppendToTail(persistenceData.RequestCount)
+				com.persistedObjects = com.persistedObjects.UpdateTotals(persistenceData.Reference, s.persistenceTimeFrame)
 				com.exchangeAccumulated <- com.persistedObjects.TotalAccumulatedRequestCount()
 			} else {
 				break
@@ -222,7 +178,7 @@ func (s *server) startCommunicationProcessor() {
 					//it gives back the total for last 60s
 					//TODO
 
-					persistenceUpdate := NewPersistenceData(com.cache, requestTimestamp)
+					persistenceUpdate := persistence.NewPersistenceData(com.cache, requestTimestamp)
 					s.logger.Printf("COM: Sending persistence Update :'%v'\n", persistenceUpdate)
 
 					s.communication.exchangePersistence <- persistenceUpdate
@@ -230,7 +186,7 @@ func (s *server) startCommunicationProcessor() {
 
 					s.logger.Printf("COM: Received new total accumulate of '%v'\n", totalAccumulated)
 
-					com.cache = NewCache(requestTimestamp, totalAccumulated)
+					com.cache = persistence.NewCache(requestTimestamp, totalAccumulated)
 					s.logger.Printf("COM: Updated cache to '%v'\n", com.cache)
 				}
 
