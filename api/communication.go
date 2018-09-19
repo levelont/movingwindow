@@ -1,7 +1,7 @@
 package api
 
 import (
-	"simplesurance/persistence"
+	"movingwindow/persistence"
 	"time"
 )
 

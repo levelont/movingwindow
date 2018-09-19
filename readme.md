@@ -7,7 +7,7 @@
 
 After cloning the repository, run from the project directory:
 
-    Lak@Lak-PC MINGW64 ~/go/src/simplesurance (master)
+    Lak@Lak-PC MINGW64 ~/go/src/movingwindow (master)
     $ go run main.go
     http: 2018/09/19 03:48:28 Server is starting...
     http: 2018/09/19 03:48:28 Server is ready to handle requests at :5000
@@ -29,7 +29,7 @@ For details on the format of `--persistence-timeframe` and `--precision`, please
 
 All requests will be handled by the same handler and will return a `requestCount` value encoded in JSON:
 
-    Lak@Lak-PC MINGW64 ~/go/src/simplesurance (master)
+    Lak@Lak-PC MINGW64 ~/go/src/movingwindow (master)
     $ curl -s -X GET http://localhost:5000/
     {"requestCount":4}
 
