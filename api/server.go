@@ -91,8 +91,9 @@ func (s *server) PersistState() error {
 
 func (s *server) initialize() {
 	s.Logger.Print("Initialising server with following parameters:")
-	s.Logger.Printf("Persistence Timeframe: '%v'\n", s.persistenceTimeFrame)
 	s.Logger.Printf("Persistence File: '%v'\n", s.persistenceFile)
+	s.Logger.Printf("Persistence Timeframe: '%v'\n", s.persistenceTimeFrame)
+	s.Logger.Printf("Precision: '%v'\n", s.precision)
 	s.readStateFromDisk()
 	s.startCommunicationProcessor()
 }
