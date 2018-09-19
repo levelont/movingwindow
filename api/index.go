@@ -65,7 +65,7 @@ func (s *server) Index(com communication) http.HandlerFunc {
 
 		com.exchangeTimestamp <- requestTimestamp
 		totalRequestsSoFar := <-com.exchangeRequestCount
-		s.Logger.Printf("Received cache from communication processor: '%v'\n", totalRequestsSoFar)
+		s.Logger.Printf("Response '%v'\n", totalRequestsSoFar)
 
 		response := Response{
 			timestamp:    totalRequestsSoFar.Timestamp,
@@ -82,6 +82,5 @@ func (s *server) Index(com communication) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		w.WriteHeader(http.StatusOK)
 		fmt.Fprint(w, string(encodedCache))
-		s.Logger.Printf("Done")
 	})
 }

@@ -2,7 +2,6 @@ package persistence
 
 import (
 	"fmt"
-	"log"
 	"strings"
 	"time"
 )
@@ -183,23 +182,16 @@ list and the memory used by then will be released.
 */
 func (list RequestCounter) UpdateTotals(reference RequestCount, timeFrame time.Duration, precision time.Duration) RequestCounter {
 	currentNode := list.tail
-	log.Printf("UPDATETOTALS: Updating totals with reference '%v' and accepted timeframe '%v'\n", reference, timeFrame)
-	log.Printf("UPDATETOTALS: List state '%v'\n", list.dump())
 	for currentNode != nil {
-		log.Printf("UPDATETOTALS: At current node with data '%v'\n", currentNode.data)
 		if withinTimeFrame, _ := currentNode.WithinDurationBefore(timeFrame, precision, reference); withinTimeFrame {
 			if currentNode.right != nil {
 				currentNode.data.Accumulated = currentNode.data.Count + currentNode.right.data.Accumulated
 			} else {
 				currentNode.data.Accumulated = currentNode.data.Count
 			}
-			log.Printf("UPDATETOTALS: Current node is within the accepted timeframe. It's data was updated to: '%v'\n", currentNode.data)
 			currentNode = currentNode.left
 		} else {
-			log.Println("UPDATETOTALS: Current node is NOT within the accepted timeframe. Nodes wil be discarded from list.")
-			log.Printf("UPDATETOTALS: List state '%v'\n", list.dump())
 			list = list.frontDiscardUntil(currentNode)
-			log.Printf("UPDATETOTALS: List is now '%+v'\n", list.dump())
 			break
 
 		}

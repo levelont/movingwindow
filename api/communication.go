@@ -97,27 +97,19 @@ func (s *server) startCommunicationProcessor() {
 		for {
 			requestTimestamp, ok := <-s.Communication.exchangeTimestamp
 			if ok {
-				s.Logger.Printf("COM: received new requestTimestamp: '%v'\n", requestTimestamp.Format(time.RFC3339))
-
 				if s.Communication.state.Present.Empty() {
 					s.Communication.state.Present.Timestamp = requestTimestamp
-					s.Logger.Print("COM: Initialized cache")
 				}
 
 				if s.Communication.state.Present.CompareTimestampWithPrecision(requestTimestamp, s.precision) {
 					s.Communication.state.Present.Increment()
-					s.Logger.Printf("COM: Incremented cached requestCount to '%v'\n", s.Communication.state.Present.Count)
 				} else {
 					persistenceUpdate := NewPersistenceData(s.Communication.state.Present, requestTimestamp)
-					s.Logger.Printf("COM: Sending persistence Update :'%v'\n", persistenceUpdate)
 
 					s.Communication.exchangePersistence <- persistenceUpdate
 					totalAccumulated := <-s.Communication.exchangeAccumulated
 
-					s.Logger.Printf("COM: Received new total accumulate of '%v'\n", totalAccumulated)
-
 					s.Communication.state.Present = persistence.NewCache(requestTimestamp, totalAccumulated)
-					s.Logger.Printf("COM: Updated cache to '%v'\n", s.Communication.state.Present)
 				}
 
 				s.Communication.exchangeRequestCount <- s.Communication.state.Present
