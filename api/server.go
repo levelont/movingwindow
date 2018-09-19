@@ -27,6 +27,7 @@ type server struct {
 	Logger               *log.Logger
 	Communication        communication
 	persistenceTimeFrame time.Duration
+	precision            time.Duration
 	persistenceFile      string
 	http.Server
 }
@@ -40,7 +41,8 @@ func NewServer(env Environment) *server {
 		router:               router,
 		Logger:               logger,
 		Communication:        communication,
-		persistenceTimeFrame: env.ParsedPersistenceTimeFrame,
+		persistenceTimeFrame: env.PersistenceTimeFrame,
+		precision:            env.Precision,
 		persistenceFile:      env.PersistenceFile,
 		Server: http.Server{
 			Addr:         env.ListenAddress,
@@ -55,7 +57,7 @@ func NewServer(env Environment) *server {
 	return server
 }
 
-/*Read persisted state from disk during startup.
+/*Read persisted state from disk during startup. Upon successful read, the file will be removed.
 Keep in mind: by the time the server has been restarted, the persisted values read and a new request is to be handled, the
 persisted request counts might no longer be in the persistence time frame. In that case, they will be discarded for the
 next request count computation.
@@ -68,8 +70,14 @@ func (s *server) readStateFromDisk() {
 		s.Communication.state, err = persistence.ReadFromFile(s.persistenceFile)
 		if err != nil {
 			s.Logger.Printf("Could not read state from file '%v': %v\n", s.persistenceFile, err)
+			return
 		}
 		s.Logger.Printf("State restored. Current request count: '%v'\n", s.Communication.state.Present.TotalRequestsWithinTimeframe)
+
+		s.Logger.Println("Removing file...")
+		if err := os.Remove(s.persistenceFile); err != nil {
+			s.Logger.Printf("Could not remove state file '%v': %v\n", s.persistenceFile, err)
+		}
 	}
 }
 

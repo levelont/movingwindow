@@ -101,6 +101,13 @@ var withinDurationBeforeTestList = []withinDurationBeforeTest{
 	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.000000000Z", time.Duration(1) * time.Second, time.Second, true},
 	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.000000001Z", time.Duration(1) * time.Second, time.Second, true},
 	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.999999999Z", time.Duration(1) * time.Second, time.Second, true},
+
+	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.999999997Z", time.Duration(2) * time.Nanosecond, time.Nanosecond, false},
+	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.999999998Z", time.Duration(2) * time.Nanosecond, time.Nanosecond, true},
+	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.999999998Z", time.Duration(1) * time.Nanosecond, time.Nanosecond, false},
+	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.999999999Z", time.Duration(1) * time.Nanosecond, time.Nanosecond, true},
+	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.000999999Z", time.Duration(1) * time.Millisecond, time.Millisecond, false},
+	{"2006-01-02T15:04:06.000000000Z", "2006-01-02T15:04:05.001000000Z", time.Duration(1) * time.Millisecond, time.Millisecond, false},
 }
 
 func TestRequestCountNode_withinDurationBefore(t *testing.T) {
@@ -129,6 +136,7 @@ type updateTotalsTest struct {
 	listData     requestCountList //a linked list will be constructed with these values in the same order of the slice
 	reference    RequestCount
 	timeframe    time.Duration
+	precision    time.Duration
 	expectedHead RequestCount
 }
 
@@ -142,6 +150,7 @@ var updateTotalsTestList = []updateTotalsTest{
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 01, 02, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
+		precision:    time.Second,
 		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), Count: 1, Accumulated: 3},
 	},
 	{ // Head + 3 outside range
@@ -155,10 +164,12 @@ var updateTotalsTestList = []updateTotalsTest{
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 01, 02, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
+		precision:    time.Second,
 		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), Count: 3, Accumulated: 6},
 	},
-	{ // Big values, all inside range
+	{ // Big values, all inside range but the first one
 		listData: requestCountList{
+			{Timestamp: time.Date(2006, 01, 02, 18, 59, 58, 0, time.UTC), Count: 999999},
 			{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), Count: 100000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 00, 0, time.UTC), Count: 10000},
 			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), Count: 1000},
@@ -168,14 +179,34 @@ var updateTotalsTestList = []updateTotalsTest{
 		},
 		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 59, 0, time.UTC)},
 		timeframe:    time.Duration(60) * time.Second,
+		precision:    time.Second,
 		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 18, 59, 59, 0, time.UTC), Count: 100000, Accumulated: 111111},
+	},
+	{ // Millisecond precision, Head is outside Range by a single millisecond
+		listData: requestCountList{
+			//OUT
+			//{Timestamp: time.Date(2006, 01, 02, 18, 59, 58, 1000000, time.UTC), Count: 100000},
+			//{Timestamp: time.Date(2006, 01, 02, 18, 59, 58, 000100000, time.UTC), Count: 100000},
+			// IN {Timestamp: time.Date(2006, 01, 02, 18, 59, 58, 999099999, time.UTC), Count: 100000},
+			{Timestamp: time.Date(2006, 01, 02, 18, 59, 58, 999000000, time.UTC), Count: 999999},
+			{Timestamp: time.Date(2006, 01, 02, 18, 59, 58, 999000001, time.UTC), Count: 100000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 00, 0, time.UTC), Count: 10000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 01, 0, time.UTC), Count: 1000},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 02, 0, time.UTC), Count: 100},
+			{Timestamp: time.Date(2006, 01, 02, 19, 00, 51, 0, time.UTC), Count: 10},
+			{Timestamp: time.Date(2006, 01, 02, 19, 01, 00, 0, time.UTC), Count: 1, Accumulated: 1},
+		},
+		reference:    RequestCount{Timestamp: time.Date(2006, 01, 02, 19, 00, 59, 0, time.UTC)},
+		timeframe:    time.Duration(60) * time.Second,
+		precision:    time.Millisecond,
+		expectedHead: RequestCount{Timestamp: time.Date(2006, 01, 02, 18, 59, 58, 999000001, time.UTC), Count: 100000, Accumulated: 111111},
 	},
 }
 
 func TestRequestCounter_UpdateTotals(t *testing.T) {
 	for i, test := range updateTotalsTestList {
 		list := test.listData.ToRequestCounter()
-		list = list.UpdateTotals(test.reference, test.timeframe)
+		list = list.UpdateTotals(test.reference, test.timeframe, test.precision)
 
 		if list.head.data != test.expectedHead {
 			t.Fatalf("Expected '%+v' but got '%+v' for test '%v' with values '%v'. List: '%v'\n", test.expectedHead.Dump(), list.head.data.Dump(), i, test, dumpList(list))

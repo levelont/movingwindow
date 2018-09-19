@@ -60,7 +60,7 @@ func (s *server) Index(com communication) http.HandlerFunc {
 			return
 		}
 
-		requestTimestamp := time.Now().Truncate(time.Second)
+		requestTimestamp := time.Now().Truncate(s.precision)
 		s.Logger.Printf("RequestTimestamp: '%v'\n", requestTimestamp.Format(time.RFC3339))
 
 		com.exchangeTimestamp <- requestTimestamp

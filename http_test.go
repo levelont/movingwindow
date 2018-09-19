@@ -254,9 +254,10 @@ func TestHandleIndex(t *testing.T) {
 	for testIndex, test := range indexHandleTestList {
 		//a new server is created for each test so that each of them starts with a clean slate.
 		srv := api.NewServer(api.Environment{
-			ListenAddress:              ":5000",
-			PersistenceFile:            "NOT_SET",
-			ParsedPersistenceTimeFrame: test.persistenceTimeframe,
+			ListenAddress:        ":5000",
+			PersistenceFile:      "NOT_SET",
+			Precision:            time.Duration(1) * time.Second,
+			PersistenceTimeFrame: test.persistenceTimeframe,
 		})
 		srv.Logger.SetOutput(ioutil.Discard)
 		srv.Routes()
