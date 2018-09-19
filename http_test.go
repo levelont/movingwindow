@@ -136,6 +136,7 @@ type order struct {
 type indexHandleTest struct {
 	orderList            []order
 	persistenceTimeframe time.Duration
+	precision            time.Duration
 }
 
 /* After a run is executed, the first assertion made is that just as many responses as there were requests were dispatched
@@ -155,6 +156,7 @@ var indexHandleTestList = []indexHandleTest{
 			{numRequests: 1, delay: 0, unit: time.Second, requestCountStart: 1, requestCountEnd: 1},
 		},
 		persistenceTimeframe: time.Duration(60) * time.Second,
+		precision:            time.Second,
 	},
 	{ //two instants, 1s=2 2s=2, 'infinite' persistenceTimeFrame
 		orderList: []order{
@@ -162,12 +164,14 @@ var indexHandleTestList = []indexHandleTest{
 			{numRequests: 2, delay: 1, unit: time.Second, requestCountStart: 3, requestCountEnd: 4},
 		},
 		persistenceTimeframe: time.Duration(60) * time.Second,
+		precision:            time.Second,
 	},
 	{ //single instant, 1000 requests, 'infinite' persistenceTimeFrame
 		orderList: []order{
 			{numRequests: 1000, delay: 0, unit: time.Second, requestCountStart: 1, requestCountEnd: 1000},
 		},
 		persistenceTimeframe: time.Duration(60) * time.Second,
+		precision:            time.Second,
 	},
 	{ // three consecutive instants, 1s=1000, 2s=1000, 3s=1000, 'infinite' persistenceTimeFrame
 		orderList: []order{
@@ -176,6 +180,7 @@ var indexHandleTestList = []indexHandleTest{
 			{numRequests: 1000, delay: 1, unit: time.Second, requestCountStart: 2001, requestCountEnd: 3000},
 		},
 		persistenceTimeframe: time.Duration(60) * time.Second,
+		precision:            time.Second,
 	},
 	{ // five instants with delays in between, timeframe of a single second
 		orderList: []order{
@@ -187,6 +192,7 @@ var indexHandleTestList = []indexHandleTest{
 			{numRequests: 1, delay: 2, unit: time.Second, requestCountStart: 1, requestCountEnd: 1},
 		},
 		persistenceTimeframe: time.Duration(1) * time.Second,
+		precision:            time.Second,
 	},
 	{ // five instants with delays in between, timeframe of a single second, each new request comes so late that it is after the persistence time frame
 		orderList: []order{
@@ -197,6 +203,7 @@ var indexHandleTestList = []indexHandleTest{
 			{numRequests: 5, delay: 2, unit: time.Second, requestCountStart: 1, requestCountEnd: 5},
 		},
 		persistenceTimeframe: time.Duration(1) * time.Second,
+		precision:            time.Second,
 	},
 	{ // five instants with delays in between timeframe of a single second
 		orderList: []order{
@@ -206,6 +213,7 @@ var indexHandleTestList = []indexHandleTest{
 			{numRequests: 1, delay: 1, unit: time.Second, requestCountStart: 11, requestCountEnd: 11},
 		},
 		persistenceTimeframe: time.Duration(1) * time.Second,
+		precision:            time.Second,
 	},
 }
 
@@ -256,7 +264,7 @@ func TestHandleIndex(t *testing.T) {
 		srv := api.NewServer(api.Environment{
 			ListenAddress:        ":5000",
 			PersistenceFile:      "NOT_SET",
-			Precision:            time.Duration(1) * time.Second,
+			Precision:            test.precision,
 			PersistenceTimeFrame: test.persistenceTimeframe,
 		})
 		srv.Logger.SetOutput(ioutil.Discard)
