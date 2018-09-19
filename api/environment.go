@@ -27,7 +27,7 @@ func ParseEnvironment() Environment {
 	var persistenceTimeframe string
 	flag.StringVar(&persistenceTimeframe, "persistence-time-interval", "60s", "Time frame for which request counts will be calculated")
 	var precision string
-	flag.StringVar(&precision, "precision", "1s", "Timestamps that differ by this ammount will be considered to be equal and their counts cached faster")
+	flag.StringVar(&precision, "precision", "100ms", "Timestamps that differ by this ammount will be considered to be equal and their counts cached faster")
 	flag.StringVar(&env.PersistenceFile, "persistence-file", "persistence.bin", "File to which state will be persisted upon server termination")
 	flag.Parse()
 

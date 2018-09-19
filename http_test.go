@@ -256,6 +256,7 @@ func TestHandleIndex(t *testing.T) {
 		srv := api.NewServer(api.Environment{
 			ListenAddress:        ":5000",
 			PersistenceFile:      "NOT_SET",
+			Precision:            time.Duration(1) * time.Second,
 			PersistenceTimeFrame: test.persistenceTimeframe,
 		})
 		srv.Logger.SetOutput(ioutil.Discard)

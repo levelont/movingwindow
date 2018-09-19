@@ -46,12 +46,14 @@ type requestCountNode struct {
 }
 
 /*
-Checks if the timestamp of the receiver is within the provided duration before the reference. Used to determine if the
-receiver node is within the persistence time frame of the reference
+Checks if the timestamp of the receiver is within the provided duration before the reference with the provided precision.
+A node that differs from the reference by less than the provided precision will be considered to be equal to the reference,
+and as such will be treated as being within the provided duration from the reference.
+Used to determine if the receiver node is within the persistence time frame of the reference
 */
 func (node requestCountNode) WithinDurationBefore(duration time.Duration, precision time.Duration, reference RequestCount) (bool, time.Duration) {
-	difference := reference.Timestamp.Sub(node.data.Timestamp).Truncate(precision)
-	return difference.Nanoseconds() <= duration.Nanoseconds(), difference
+	difference := reference.Timestamp.Sub(node.data.Timestamp)
+	return difference.Truncate(precision).Nanoseconds() <= duration.Truncate(precision).Nanoseconds(), difference
 }
 
 /* Implements a doubly linked list. Used to store the timestamp of requests and their request counts.
@@ -170,21 +172,22 @@ func (list RequestCounter) frontDiscardUntil(lastNodeToDiscard *requestCountNode
 }
 
 /*
-Backward-traverses the list starting from the tail. Checks that each node is within the provided timeframe in seconds
-before the reference.
-Nodes with timestamps in the time frame will get their accumulatedRequestCount value updated to the sum of their
-requestCount and the accumulated of the node right to them.
-As such, the total of accumulated requests received between the reference and the previous 60 seconds will be the
-accumulatedRequestCount value of the head of the list.
-Nodes outside of the time frame will be discarded from the list.
+Backward-traverses the list starting from the tail. Checks that each node is within the provided timeframe before the
+reference. The comparison between the node and the reference timeframe is done with the provided precision by means of
+the WithinDurationBefore() function.
+Nodes with timestamps in the time frame will get their accumulatedRequestCount value updated to the sum of their 'Count'
+and the 'Accumulated' value of their right node, if available. As such, the total of accumulated requests received between
+the reference and the provided timeframe will be the 'Accumulated' value of the head of the list.
+Nodes outside of the time frame will be discarded from the list. That is: they will be disconnected from the doubly linked
+list and the memory used by then will be released.
 */
-func (list RequestCounter) UpdateTotals(reference RequestCount, timeFrame time.Duration) RequestCounter {
+func (list RequestCounter) UpdateTotals(reference RequestCount, timeFrame time.Duration, precision time.Duration) RequestCounter {
 	currentNode := list.tail
 	log.Printf("UPDATETOTALS: Updating totals with reference '%v' and accepted timeframe '%v'\n", reference, timeFrame)
 	log.Printf("UPDATETOTALS: List state '%v'\n", list.dump())
 	for currentNode != nil {
 		log.Printf("UPDATETOTALS: At current node with data '%v'\n", currentNode.data)
-		if withinTimeFrame, _ := currentNode.WithinDurationBefore(timeFrame, time.Second, reference); withinTimeFrame {
+		if withinTimeFrame, _ := currentNode.WithinDurationBefore(timeFrame, precision, reference); withinTimeFrame {
 			if currentNode.right != nil {
 				currentNode.data.Accumulated = currentNode.data.Count + currentNode.right.data.Accumulated
 			} else {

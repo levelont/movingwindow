@@ -84,7 +84,7 @@ func (s *server) startCommunicationProcessor() {
 			persistenceData, ok := <-s.Communication.exchangePersistence
 			if ok {
 				s.Communication.state.Past = s.Communication.state.Past.AppendToTail(persistenceData.RequestCount)
-				s.Communication.state.Past = s.Communication.state.Past.UpdateTotals(persistenceData.Reference, s.persistenceTimeFrame)
+				s.Communication.state.Past = s.Communication.state.Past.UpdateTotals(persistenceData.Reference, s.persistenceTimeFrame, s.precision)
 				s.Communication.exchangeAccumulated <- s.Communication.state.Past.TotalAccumulatedRequestCount()
 			} else {
 				break
@@ -104,7 +104,7 @@ func (s *server) startCommunicationProcessor() {
 					s.Logger.Print("COM: Initialized cache")
 				}
 
-				if s.Communication.state.Present.CompareTimestampWithPrecision(requestTimestamp, time.Second) {
+				if s.Communication.state.Present.CompareTimestampWithPrecision(requestTimestamp, s.precision) {
 					s.Communication.state.Present.Increment()
 					s.Logger.Printf("COM: Incremented cached requestCount to '%v'\n", s.Communication.state.Present.Count)
 				} else {
